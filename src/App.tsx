@@ -11,7 +11,7 @@ import Settings from './pages/app/Settings'
 export default function App() {
   return (
     <StoreProvider>
-      <BrowserRouter>
+      <BrowserRouter basename={import.meta.env.BASE_URL}>
         <Routes>
           <Route path="/" element={<Landing />} />
           <Route path="/start" element={<Onboarding />} />
