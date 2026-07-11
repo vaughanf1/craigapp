@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useStore } from '../../lib/store'
 import { COACHES, getCoach } from '../../data/coaches'
 import { speak } from '../../lib/coach'
@@ -132,7 +132,20 @@ export default function Settings() {
       </Rise>
 
       <Rise delay={0.15}>
-        <Card className="p-5">
+        <Card className="space-y-3 p-5">
+          <button
+            onClick={() => {
+              const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' })
+              const a = document.createElement('a')
+              a.href = URL.createObjectURL(blob)
+              a.download = 'bemore-data.json'
+              a.click()
+              URL.revokeObjectURL(a.href)
+            }}
+            className="w-full rounded-full bg-black/[0.05] py-3 font-medium transition-colors hover:bg-black/[0.08]"
+          >
+            Download my data
+          </button>
           <button
             onClick={() => {
               if (confirm('Start over? This clears your goal, streak and chat history.')) {
@@ -149,6 +162,11 @@ export default function Settings() {
 
       <Rise delay={0.2}>
         <Disclaimer />
+        <p className="mt-3 text-xs text-ink-secondary">
+          Be More v{__APP_VERSION__} ·{' '}
+          <Link to="/privacy" className="text-accent">Privacy</Link> ·{' '}
+          <Link to="/terms" className="text-accent">Terms</Link>
+        </p>
       </Rise>
     </div>
   )

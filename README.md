@@ -27,6 +27,19 @@ towards whatever goal you're chasing.
 
 Everything persists locally in the browser (localStorage) — no account needed for the MVP.
 
+## Production
+
+- **PWA**: installable to the home screen (manifest + service worker), works offline after first visit
+- **Privacy by architecture**: all data stays on-device; export or erase it any time from Settings
+- **Legal**: `/privacy` and `/terms` pages with the required disclaimers
+- **Quality gates**: `npm test` (22 tests covering the coach engine, streak logic and the content
+  spec — 20 questions/statements per area, 40 sayings, 20 understanding responses) and `npm run lint`
+  both run in CI before every deploy
+- **Deploys**: every push to the main branch runs tests, builds with `--base=/craigapp/` and
+  publishes to GitHub Pages via the `gh-pages` branch
+- **Resilience**: error boundary with friendly recovery, storage guarded for private browsing,
+  reduced-motion support, code-split routes
+
 ## Tech stack
 
 - [React 19](https://react.dev) + [TypeScript](https://www.typescriptlang.org) + [Vite](https://vite.dev)

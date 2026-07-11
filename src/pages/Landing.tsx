@@ -259,7 +259,11 @@ export default function Landing() {
             Be More
           </div>
           <Disclaimer className="mt-4 max-w-2xl" />
-          <p className="mt-4 text-xs text-ink-secondary">
+          <div className="mt-4 flex gap-5 text-xs">
+            <Link to="/privacy" className="text-accent">Privacy Policy</Link>
+            <Link to="/terms" className="text-accent">Terms & Disclaimer</Link>
+          </div>
+          <p className="mt-3 text-xs text-ink-secondary">
             © {new Date().getFullYear()} Be More. Available on the web — App Store & Google Play coming soon.
           </p>
         </div>
