@@ -14,7 +14,11 @@ const PRIVACY = {
     },
     {
       h: 'Voice',
-      p: 'The coach’s voice uses your device’s built-in speech engine. Nothing you type or hear leaves your device.',
+      p: 'The coach’s voice uses your device’s built-in speech engine, and voice food logging uses your device’s built-in speech recognition (your browser may process audio according to its own privacy policy).',
+    },
+    {
+      h: 'Optional AI conversations (beta)',
+      p: 'If you switch on AI conversations in Settings and provide your own Anthropic API key, your chat messages and goal details are sent to Anthropic’s Claude API to generate the coach’s replies, under Anthropic’s privacy terms. This is off by default, your key is stored only on your device, and turning it off stops any data being sent.',
     },
     {
       h: 'Your rights',

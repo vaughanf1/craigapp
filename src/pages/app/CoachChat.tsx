@@ -3,6 +3,7 @@ import { motion } from 'framer-motion'
 import { uid, useStore } from '../../lib/store'
 import { getCoach } from '../../data/coaches'
 import { coachReply, dailyQuestion, greeting, speak, stopSpeaking } from '../../lib/coach'
+import { aiErrorKind, askCoach } from '../../lib/ai'
 import { CoachAvatar } from '../../components/ui'
 
 export default function CoachChat() {
@@ -30,18 +31,36 @@ export default function CoachChat() {
 
   useEffect(() => stopSpeaking, [])
 
+  const deliver = (reply: string) => {
+    setTyping(false)
+    addChat({ id: uid(), from: 'coach', text: reply, timestamp: Date.now() })
+    if (profile.voiceEnabled) speak(reply, profile.accent, coach.gender)
+  }
+
   const send = () => {
     const text = draft.trim()
     if (!text || typing) return
     setDraft('')
-    addChat({ id: uid(), from: 'user', text, timestamp: Date.now() })
+    const userMsg = { id: uid(), from: 'user' as const, text, timestamp: Date.now() }
+    addChat(userMsg)
     setTyping(true)
-    const reply = coachReply(profile, text)
-    setTimeout(() => {
-      setTyping(false)
-      addChat({ id: uid(), from: 'coach', text: reply, timestamp: Date.now() })
-      if (profile.voiceEnabled) speak(reply, profile.accent, coach.gender)
-    }, 900 + Math.random() * 700)
+
+    if (profile.aiEnabled && profile.aiApiKey) {
+      askCoach(profile, coach, [...state.chat, userMsg], state.checkIns)
+        .then(deliver)
+        .catch((error) => {
+          if (aiErrorKind(error) === 'auth') {
+            deliver(
+              `(Your AI key isn't working — check it in Settings. Meanwhile, I'm still here!) ${coachReply(profile, text)}`,
+            )
+          } else {
+            deliver(coachReply(profile, text))
+          }
+        })
+    } else {
+      const reply = coachReply(profile, text)
+      setTimeout(() => deliver(reply), 900 + Math.random() * 700)
+    }
   }
 
   return (

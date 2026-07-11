@@ -46,6 +46,27 @@ describe('coachReply sentiment routing', () => {
     expect(reply).toContain('Craig')
     expect(reply).toMatch(/\?/)
   })
+
+  it('recites the plan back when asked "what is my goal?"', () => {
+    const reply = coachReply(profile, "what's my goal again?")
+    expect(reply).toContain('Quit smoking by Christmas')
+    expect(reply).toContain('December')
+  })
+
+  it('supports through a craving with urge-surfing', () => {
+    const reply = coachReply(profile, "I'm really craving a cigarette right now")
+    expect(reply).toMatch(/pass/i)
+    expect(reply).toContain('Craig')
+  })
+
+  it('recognises when the user hits one of their own predicted obstacles', () => {
+    const withObstacles = {
+      ...profile,
+      plan: { ...profile.plan, obstacles: ['Social events where others smoke'] },
+    }
+    const reply = coachReply(withObstacles, 'I was at social events where others smoke all night')
+    expect(reply).toContain('obstacles you predicted')
+  })
 })
 
 describe('daily content rotation', () => {

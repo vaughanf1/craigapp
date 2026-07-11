@@ -76,10 +76,14 @@ export interface UserProfile {
   plan: GoalPlan
   createdAt: number
   /* health-goal extras */
+  sex?: 'male' | 'female'
   heightCm?: number
   weightKg?: number
   goalWeightKg?: number
   calorieTarget?: number
+  /* AI conversations (bring-your-own-key) */
+  aiEnabled?: boolean
+  aiApiKey?: string
 }
 
 export interface AppState {

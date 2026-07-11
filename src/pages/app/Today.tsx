@@ -15,8 +15,23 @@ import {
   understandingResponse,
 } from '../../lib/coach'
 import { COMMON_EXERCISE, COMMON_FOODS } from '../../data/calories'
+import { parseFood } from '../../lib/food'
 import { Card, CoachAvatar, Rise } from '../../components/ui'
 import type { FoodEntry } from '../../lib/types'
+
+/* Speech recognition (voice food logging) — vendor-prefixed in most browsers */
+interface SpeechRecognitionLike {
+  lang: string
+  interimResults: boolean
+  onresult: ((event: { results: { [i: number]: { [j: number]: { transcript: string } } } }) => void) | null
+  onend: (() => void) | null
+  onerror: (() => void) | null
+  start: () => void
+}
+function getSpeechRecognition(): (new () => SpeechRecognitionLike) | null {
+  const w = window as unknown as Record<string, new () => SpeechRecognitionLike>
+  return w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null
+}
 
 export default function Today() {
   const { state, addCheckIn, addFood, removeFood, addChat } = useStore()
@@ -151,6 +166,9 @@ export default function Today() {
         </Card>
       </Rise>
 
+      {/* Weekly review */}
+      <WeekReview />
+
       {/* Benefits reminder — "what's in it for you" resurfaced daily */}
       {profile.plan.benefits.length > 0 && (
         <Rise delay={0.25}>
@@ -172,6 +190,69 @@ export default function Today() {
   )
 }
 
+function WeekReview() {
+  const { state } = useStore()
+  const profile = state.profile!
+
+  const week: { key: string; label: string; status: 'good' | 'tough' | 'missed' | 'future' }[] = []
+  const now = new Date()
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(now)
+    d.setDate(d.getDate() - i)
+    const key = todayKey(d)
+    const record = state.checkIns.find((c) => c.date === key)
+    week.push({
+      key,
+      label: d.toLocaleDateString(undefined, { weekday: 'narrow' }),
+      status: record ? (record.wentWell ? 'good' : 'tough') : i === 0 ? 'future' : 'missed',
+    })
+  }
+  const done = week.filter((d) => d.status === 'good' || d.status === 'tough').length
+  if (done === 0) return null
+
+  const goodDays = week.filter((d) => d.status === 'good').length
+  const line =
+    done === 7
+      ? `A full week of showing up, ${profile.name} — that's how goals fall.`
+      : done >= 5
+        ? `${done} check-ins out of 7 this week. Momentum is on your side.`
+        : done >= 3
+          ? `${done} check-ins this week. Every one counts — let's build on it.`
+          : `${done} check-in${done === 1 ? '' : 's'} this week. Small steps still move you forward.`
+
+  return (
+    <Rise delay={0.22}>
+      <Card className="p-5">
+        <p className="text-xs font-semibold uppercase tracking-wider text-ink-secondary">Your week</p>
+        <div className="mt-3 flex justify-between">
+          {week.map((d) => (
+            <div key={d.key} className="flex flex-col items-center gap-1.5">
+              <span
+                className={`flex h-9 w-9 items-center justify-center rounded-full text-sm ${
+                  d.status === 'good'
+                    ? 'bg-leaf/15 text-leaf'
+                    : d.status === 'tough'
+                      ? 'bg-amber/15 text-amber'
+                      : d.status === 'future'
+                        ? 'bg-black/[0.04] text-ink-secondary'
+                        : 'bg-black/[0.04] text-ink-secondary/40'
+                }`}
+              >
+                {d.status === 'good' ? '✓' : d.status === 'tough' ? '~' : '·'}
+              </span>
+              <span className="text-[10px] font-medium text-ink-secondary">{d.label}</span>
+            </div>
+          ))}
+        </div>
+        <p className="mt-3 text-sm leading-relaxed text-ink-secondary">
+          {line}
+          {goodDays > 0 && done < 7 ? ` ${goodDays} of them were good days.` : ''}
+        </p>
+      </Card>
+    </Rise>
+  )
+}
+
 function CalorieCard({
   addFood,
   removeFood,
@@ -185,6 +266,9 @@ function CalorieCard({
   const [calories, setCalories] = useState('')
   const [kind, setKind] = useState<'food' | 'exercise'>('food')
   const [showQuick, setShowQuick] = useState(false)
+  const [listening, setListening] = useState(false)
+  const [heard, setHeard] = useState<string | null>(null)
+  const SpeechRecognitionCtor = getSpeechRecognition()
 
   const start = new Date()
   start.setHours(0, 0, 0, 0)
@@ -199,6 +283,38 @@ function CalorieCard({
     addFood({ id: uid(), label: l.trim(), calories: c, kind: k, timestamp: Date.now() })
     setLabel('')
     setCalories('')
+  }
+
+  const listen = () => {
+    if (!SpeechRecognitionCtor || listening) return
+    const recognition = new SpeechRecognitionCtor()
+    recognition.lang = profile.accent === 'american' ? 'en-US' : 'en-GB'
+    recognition.interimResults = false
+    setListening(true)
+    setHeard(null)
+    recognition.onresult = (event) => {
+      const transcript = event.results[0][0].transcript
+      const parsed = parseFood(transcript)
+      if (parsed.length > 0) {
+        for (const item of parsed) {
+          const qty = item.quantity !== 1 ? ` ×${item.quantity}` : ''
+          addFood({
+            id: uid(),
+            label: `${item.label}${qty}`,
+            calories: item.calories,
+            kind: 'food',
+            timestamp: Date.now(),
+          })
+        }
+        setHeard(`Logged ${parsed.length} item${parsed.length === 1 ? '' : 's'} from "${transcript}"`)
+      } else {
+        setLabel(transcript)
+        setHeard(`Heard "${transcript}" — add the calories and tap +`)
+      }
+    }
+    recognition.onend = () => setListening(false)
+    recognition.onerror = () => setListening(false)
+    recognition.start()
   }
 
   const quickList = kind === 'food' ? COMMON_FOODS : COMMON_EXERCISE
@@ -260,11 +376,24 @@ function CalorieCard({
           </div>
         )}
 
+        {heard && <p className="mt-3 text-xs text-ink-secondary">🎙 {heard}</p>}
         <div className="mt-3 flex gap-2">
+          {kind === 'food' && SpeechRecognitionCtor && (
+            <button
+              onClick={listen}
+              className={`h-11 w-11 shrink-0 rounded-2xl text-lg transition-colors ${
+                listening ? 'animate-pulse bg-coral text-white' : 'bg-black/[0.04] hover:bg-black/[0.08]'
+              }`}
+              aria-label="Speak what you ate"
+              title="Speak what you ate — e.g. “two slices of toast and a latte”"
+            >
+              🎙
+            </button>
+          )}
           <input
             value={label}
             onChange={(e) => setLabel(e.target.value)}
-            placeholder={kind === 'food' ? 'What did you eat?' : 'What exercise did you do?'}
+            placeholder={kind === 'food' ? 'What did you eat? (or tap 🎙)' : 'What exercise did you do?'}
             className="min-w-0 flex-1 rounded-2xl bg-black/[0.04] px-3.5 py-2.5 text-[15px] outline-none ring-accent/50 focus:ring-2"
           />
           <input

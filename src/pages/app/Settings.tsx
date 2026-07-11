@@ -131,11 +131,61 @@ export default function Settings() {
         </Card>
       </Rise>
 
+      {import.meta.env.MODE !== 'artifact' && (
+        <Rise delay={0.12}>
+          <Card className="p-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-semibold">AI conversations <span className="ml-1 rounded-full bg-accent/10 px-2 py-0.5 text-xs font-medium text-accent">beta</span></p>
+                <p className="mt-0.5 text-sm text-ink-secondary">
+                  Give {coach.name} a real brain — genuine conversations powered by Claude, with
+                  memory of your goal and progress.
+                </p>
+              </div>
+              <button
+                onClick={() => updateProfile({ aiEnabled: !profile.aiEnabled })}
+                className={`relative ml-4 h-8 w-14 shrink-0 rounded-full transition-colors ${
+                  profile.aiEnabled ? 'bg-leaf' : 'bg-black/[0.15]'
+                }`}
+                role="switch"
+                aria-checked={!!profile.aiEnabled}
+              >
+                <span
+                  className={`absolute top-1 h-6 w-6 rounded-full bg-white shadow-card transition-all ${
+                    profile.aiEnabled ? 'left-7' : 'left-1'
+                  }`}
+                />
+              </button>
+            </div>
+            {profile.aiEnabled && (
+              <div className="mt-4">
+                <input
+                  type="password"
+                  value={profile.aiApiKey ?? ''}
+                  onChange={(e) => updateProfile({ aiApiKey: e.target.value.trim() })}
+                  placeholder="Paste your Anthropic API key (sk-ant-…)"
+                  autoComplete="off"
+                  className="w-full rounded-2xl bg-black/[0.04] px-4 py-3 text-[15px] outline-none ring-accent/50 focus:ring-2"
+                />
+                <p className="mt-2 text-xs leading-relaxed text-ink-secondary">
+                  Your key is stored only on this device and used to talk to Claude directly —
+                  it never touches a Be More server. Get a key at console.anthropic.com. Without
+                  a key, the coach uses the built-in responses.
+                </p>
+              </div>
+            )}
+          </Card>
+        </Rise>
+      )}
+
       <Rise delay={0.15}>
         <Card className="space-y-3 p-5">
           <button
             onClick={() => {
-              const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' })
+              const exported = state.profile
+                ? { ...state, profile: { ...state.profile, aiApiKey: undefined } }
+                : state
+              const blob = new Blob([JSON.stringify(exported, null, 2)], { type: 'application/json' })
               const a = document.createElement('a')
               a.href = URL.createObjectURL(blob)
               a.download = 'bemore-data.json'

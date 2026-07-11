@@ -25,11 +25,23 @@ describe('currentStreak', () => {
     expect(currentStreak([record(daysAgo(2)), record(daysAgo(1))])).toBe(2)
   })
 
-  it('breaks on a missed day', () => {
+  it('freezes a single missed day instead of breaking the streak', () => {
+    // missed daysAgo(1), but kept daysAgo(2): the miss is frozen
+    expect(currentStreak([record(daysAgo(3)), record(daysAgo(2)), record(daysAgo(0))])).toBe(3)
+  })
+
+  it('does not freeze two missed days in a row', () => {
     expect(currentStreak([record(daysAgo(3)), record(daysAgo(0))])).toBe(1)
   })
 
-  it('is 0 when the last check-in was two days ago', () => {
-    expect(currentStreak([record(daysAgo(2))])).toBe(0)
+  it('allows at most one freeze per rolling week', () => {
+    // two isolated misses within the same 7 days: second one breaks
+    const checkIns = [0, 2, 3, 4, 6, 7].map((n) => record(daysAgo(n)))
+    // miss at day 1 is frozen; miss at day 5 is within 7 days of that freeze
+    expect(currentStreak(checkIns)).toBe(4)
+  })
+
+  it('is 0 when the last check-in was three days ago', () => {
+    expect(currentStreak([record(daysAgo(3))])).toBe(0)
   })
 })

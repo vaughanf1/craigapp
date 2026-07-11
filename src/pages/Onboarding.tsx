@@ -5,6 +5,7 @@ import { GOAL_AREAS } from '../data/goalAreas'
 import { COACHES, getCoach } from '../data/coaches'
 import { useStore } from '../lib/store'
 import { speak } from '../lib/coach'
+import { suggestedCalorieTarget } from '../lib/health'
 import type { GoalAreaId, VoiceAccent } from '../lib/types'
 import TagInput from '../components/TagInput'
 import { CoachAvatar, Disclaimer, PrimaryButton, ProgressDots, SecondaryButton } from '../components/ui'
@@ -25,7 +26,8 @@ const BENEFIT_SUGGESTIONS: Partial<Record<GoalAreaId, string[]>> = {
   family: ['Closer relationships', 'Happier home', 'Kids who feel valued'],
 }
 
-const STEPS = ['about', 'area', 'goal', 'plan', 'coach', 'voice', 'done'] as const
+const BASE_STEPS = ['about', 'area', 'goal', 'plan', 'coach', 'voice', 'done'] as const
+type Step = (typeof BASE_STEPS)[number] | 'health'
 
 export default function Onboarding() {
   const navigate = useNavigate()
@@ -46,11 +48,34 @@ export default function Onboarding() {
   const [accent, setAccent] = useState<VoiceAccent>('british')
   const [checkInsPerDay, setCheckInsPerDay] = useState<1 | 2 | 3 | 4 | 5>(3)
 
+  const [sex, setSex] = useState<'male' | 'female' | undefined>(undefined)
+  const [heightCm, setHeightCm] = useState('')
+  const [weightKg, setWeightKg] = useState('')
+  const [goalWeightKg, setGoalWeightKg] = useState('')
+
   const area = useMemo(() => GOAL_AREAS.find((a) => a.id === areaId), [areaId])
   const coach = coachId ? getCoach(coachId) : null
 
+  // Health goals get an extra step: body metrics for the calorie tracker
+  const steps: readonly Step[] = useMemo(
+    () =>
+      areaId === 'health'
+        ? ['about', 'area', 'goal', 'plan', 'health', 'coach', 'voice', 'done']
+        : BASE_STEPS,
+    [areaId],
+  )
+
+  const metrics = {
+    sex,
+    dob,
+    heightCm: Number(heightCm) || undefined,
+    weightKg: Number(weightKg) || undefined,
+    goalWeightKg: Number(goalWeightKg) || undefined,
+  }
+  const calorieTarget = suggestedCalorieTarget(metrics)
+
   const canNext = (() => {
-    switch (STEPS[step]) {
+    switch (steps[step]) {
       case 'about':
         return name.trim().length > 0
       case 'area':
@@ -80,12 +105,21 @@ export default function Onboarding() {
       checkInsPerDay,
       plan: { statement: statement.trim(), benefits, supporters, obstacles, skills, actionPlan, targetDate },
       createdAt: Date.now(),
+      ...(areaId === 'health'
+        ? {
+            sex,
+            heightCm: metrics.heightCm,
+            weightKg: metrics.weightKg,
+            goalWeightKg: metrics.goalWeightKg,
+            calorieTarget: calorieTarget ?? undefined,
+          }
+        : {}),
     })
     navigate('/app')
   }
 
   const next = () => {
-    if (STEPS[step] === 'done') {
+    if (steps[step] === 'done') {
       finish()
     } else {
       setStep((s) => s + 1)
@@ -99,7 +133,7 @@ export default function Onboarding() {
           <Link to="/" className="flex items-center gap-2 text-sm font-semibold">
             <Logo className="h-5 w-5" /> Be More
           </Link>
-          <ProgressDots total={STEPS.length} current={step} />
+          <ProgressDots total={steps.length} current={step} />
           <div className="w-16 text-right">
             {step > 0 && (
               <button onClick={() => setStep((s) => s - 1)} className="text-sm text-accent">
@@ -119,7 +153,7 @@ export default function Onboarding() {
             exit={{ opacity: 0, x: -32 }}
             transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
           >
-            {STEPS[step] === 'about' && (
+            {steps[step] === 'about' && (
               <section>
                 <h1 className="display-tight text-3xl font-semibold sm:text-4xl">
                   First, a little about you.
@@ -149,7 +183,7 @@ export default function Onboarding() {
               </section>
             )}
 
-            {STEPS[step] === 'area' && (
+            {steps[step] === 'area' && (
               <section>
                 <h1 className="display-tight text-3xl font-semibold sm:text-4xl">
                   What do you want to be more of?
@@ -181,7 +215,7 @@ export default function Onboarding() {
               </section>
             )}
 
-            {STEPS[step] === 'goal' && area && (
+            {steps[step] === 'goal' && area && (
               <section>
                 <h1 className="display-tight text-3xl font-semibold sm:text-4xl">
                   Write your goal down.
@@ -218,7 +252,7 @@ export default function Onboarding() {
               </section>
             )}
 
-            {STEPS[step] === 'plan' && area && (
+            {steps[step] === 'plan' && area && (
               <section>
                 <h1 className="display-tight text-3xl font-semibold sm:text-4xl">Build your plan.</h1>
                 <p className="mt-3 text-ink-secondary">
@@ -274,7 +308,69 @@ export default function Onboarding() {
               </section>
             )}
 
-            {STEPS[step] === 'coach' && (
+            {steps[step] === 'health' && (
+              <section>
+                <h1 className="display-tight text-3xl font-semibold sm:text-4xl">A few numbers.</h1>
+                <p className="mt-3 text-ink-secondary">
+                  So the calorie tracker can suggest a daily target. All optional, all approximate,
+                  and it stays on your device.
+                </p>
+                <div className="mt-8 space-y-4">
+                  <div>
+                    <span className="mb-1.5 block text-sm font-medium text-ink-secondary">Sex (for the calorie formula)</span>
+                    <div className="grid grid-cols-3 gap-2">
+                      {([
+                        ['male', 'Male'],
+                        ['female', 'Female'],
+                        [undefined, 'Skip'],
+                      ] as const).map(([value, text]) => (
+                        <button
+                          key={text}
+                          onClick={() => setSex(value)}
+                          className={`rounded-2xl py-3 font-medium transition-all ${
+                            sex === value
+                              ? 'bg-accent text-white'
+                              : 'bg-white shadow-card hairline hover:shadow-float'
+                          }`}
+                        >
+                          {text}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-3 gap-3">
+                    {([
+                      ['Height (cm)', heightCm, setHeightCm, '175'],
+                      ['Weight (kg)', weightKg, setWeightKg, '85'],
+                      ['Goal (kg)', goalWeightKg, setGoalWeightKg, '78'],
+                    ] as const).map(([labelText, value, setter, ph]) => (
+                      <label key={labelText} className="block">
+                        <span className="mb-1.5 block text-sm font-medium text-ink-secondary">{labelText}</span>
+                        <input
+                          value={value}
+                          onChange={(e) => setter(e.target.value.replace(/[^\d.]/g, ''))}
+                          placeholder={ph}
+                          inputMode="decimal"
+                          className="w-full rounded-2xl bg-white px-4 py-3.5 text-[17px] shadow-card outline-none ring-accent/50 transition-shadow focus:ring-2"
+                        />
+                      </label>
+                    ))}
+                  </div>
+                  {calorieTarget && (
+                    <div className="rounded-2xl bg-accent/10 p-4 text-sm leading-relaxed text-accent">
+                      Suggested daily target: <strong>{calorieTarget} kcal</strong>
+                      {metrics.goalWeightKg && metrics.weightKg && metrics.goalWeightKg < metrics.weightKg
+                        ? ' — includes a gentle deficit for steady weight loss.'
+                        : '.'}{' '}
+                      You can change it any time in Settings.
+                    </div>
+                  )}
+                  <Disclaimer />
+                </div>
+              </section>
+            )}
+
+            {steps[step] === 'coach' && (
               <section>
                 <h1 className="display-tight text-3xl font-semibold sm:text-4xl">Pick your coach.</h1>
                 <p className="mt-3 text-ink-secondary">
@@ -309,7 +405,7 @@ export default function Onboarding() {
               </section>
             )}
 
-            {STEPS[step] === 'voice' && (
+            {steps[step] === 'voice' && (
               <section>
                 <h1 className="display-tight text-3xl font-semibold sm:text-4xl">Voice & check-ins.</h1>
                 <p className="mt-3 text-ink-secondary">
@@ -371,7 +467,7 @@ export default function Onboarding() {
               </section>
             )}
 
-            {STEPS[step] === 'done' && coach && area && (
+            {steps[step] === 'done' && coach && area && (
               <section className="text-center">
                 <motion.div
                   initial={{ scale: 0.6, opacity: 0 }}
@@ -404,7 +500,7 @@ export default function Onboarding() {
             <span />
           )}
           <PrimaryButton onClick={next} disabled={!canNext}>
-            {STEPS[step] === 'done' ? `Meet ${coach?.name ?? 'your coach'} →` : 'Continue'}
+            {steps[step] === 'done' ? `Meet ${coach?.name ?? 'your coach'} →` : 'Continue'}
           </PrimaryButton>
         </div>
       </footer>

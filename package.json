@@ -1,7 +1,7 @@
 {
   "name": "craigapp",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.1.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -11,6 +11,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.111.0",
     "@tailwindcss/vite": "^4.3.2",
     "framer-motion": "^12.42.2",
     "react": "^19.2.7",

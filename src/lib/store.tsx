@@ -65,15 +65,35 @@ export function todayKey(date = new Date()): string {
   return date.toISOString().slice(0, 10)
 }
 
-/** Consecutive days ending today (or yesterday, so the streak isn't lost before checking in) */
+/**
+ * Consecutive days ending today (or yesterday, so the streak isn't lost
+ * before checking in). One missed day per rolling week is "frozen" rather
+ * than breaking the streak — a stumble is not a fall.
+ */
 export function currentStreak(checkIns: CheckInRecord[]): number {
   const dates = new Set(checkIns.map((c) => c.date))
   let streak = 0
+  let daysSinceFreeze = 8 // a freeze is available immediately
   const cursor = new Date()
   if (!dates.has(todayKey(cursor))) cursor.setDate(cursor.getDate() - 1)
-  while (dates.has(todayKey(cursor))) {
-    streak++
-    cursor.setDate(cursor.getDate() - 1)
+
+  for (;;) {
+    if (dates.has(todayKey(cursor))) {
+      streak++
+      daysSinceFreeze++
+      cursor.setDate(cursor.getDate() - 1)
+    } else {
+      // freeze: skip a single missed day if the day before it was kept
+      // and no freeze was used in the last 7 days
+      const dayBefore = new Date(cursor)
+      dayBefore.setDate(dayBefore.getDate() - 1)
+      if (daysSinceFreeze > 7 && dates.has(todayKey(dayBefore))) {
+        daysSinceFreeze = 0
+        cursor.setDate(cursor.getDate() - 1)
+      } else {
+        break
+      }
+    }
   }
   return streak
 }
