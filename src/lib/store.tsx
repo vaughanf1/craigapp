@@ -32,7 +32,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AppState>(load)
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
+    } catch {
+      // Storage unavailable (sandboxed iframe, private browsing) — state stays in memory
+    }
   }, [state])
 
   const store: Store = {
