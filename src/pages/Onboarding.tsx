@@ -8,6 +8,7 @@ import { speak } from '../lib/coach'
 import type { GoalAreaId, VoiceAccent } from '../lib/types'
 import TagInput from '../components/TagInput'
 import { CoachAvatar, Disclaimer, PrimaryButton, ProgressDots, SecondaryButton } from '../components/ui'
+import Logo from '../components/Logo'
 
 /** Common obstacle/benefit suggestions per Craig's examples */
 const OBSTACLE_SUGGESTIONS: Partial<Record<GoalAreaId, string[]>> = {
@@ -96,7 +97,7 @@ export default function Onboarding() {
       <header className="glass sticky top-0 z-50 border-b border-black/5">
         <div className="mx-auto flex h-12 max-w-2xl items-center justify-between px-6">
           <Link to="/" className="flex items-center gap-2 text-sm font-semibold">
-            <img src="/bemore.svg" alt="" className="h-5 w-5 rounded" /> Be More
+            <Logo className="h-5 w-5" /> Be More
           </Link>
           <ProgressDots total={STEPS.length} current={step} />
           <div className="w-16 text-right">

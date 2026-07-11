@@ -3,6 +3,7 @@ import { motion } from 'framer-motion'
 import { GOAL_AREAS } from '../data/goalAreas'
 import { COACHES } from '../data/coaches'
 import { CoachAvatar, Disclaimer, Rise } from '../components/ui'
+import Logo from '../components/Logo'
 
 const BENEFITS = [
   { icon: '😊', title: 'Happiness', text: 'Feel better about who you are and where you’re going.' },
@@ -38,7 +39,7 @@ export default function Landing() {
       <header className="glass sticky top-0 z-50 border-b border-black/5">
         <nav className="mx-auto flex h-12 max-w-5xl items-center justify-between px-6">
           <div className="flex items-center gap-2 font-semibold">
-            <img src="/bemore.svg" alt="" className="h-6 w-6 rounded-md" />
+            <Logo className="h-6 w-6" />
             Be More
           </div>
           <div className="hidden items-center gap-8 text-sm text-ink-secondary sm:flex">
@@ -254,7 +255,7 @@ export default function Landing() {
       <footer className="border-t border-black/5 px-6 py-10">
         <div className="mx-auto max-w-5xl">
           <div className="flex items-center gap-2 font-semibold">
-            <img src="/bemore.svg" alt="" className="h-5 w-5 rounded" />
+            <Logo className="h-5 w-5" />
             Be More
           </div>
           <Disclaimer className="mt-4 max-w-2xl" />
