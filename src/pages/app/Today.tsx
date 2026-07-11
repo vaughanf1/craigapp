@@ -211,7 +211,7 @@ function CalorieCard({
             Calories today
           </p>
           <p className="text-sm text-ink-secondary">
-            🍽 {eaten} − 🏃 {burned} ={' '}
+            🍽️ {eaten} − 🏃 {burned} ={' '}
             <span className={`font-semibold ${net > target ? 'text-coral' : 'text-leaf'}`}>{net}</span>{' '}
             / {target}
           </p>
@@ -234,7 +234,7 @@ function CalorieCard({
                 kind === k ? 'bg-ink text-white' : 'bg-black/[0.05] text-ink-secondary'
               }`}
             >
-              {k === 'food' ? '🍽 Food' : '🏃 Exercise'}
+              {k === 'food' ? '🍽️ Food' : '🏃 Exercise'}
             </button>
           ))}
           <button
@@ -291,7 +291,7 @@ function CalorieCard({
               .map((f) => (
                 <li key={f.id} className="flex items-center justify-between text-sm">
                   <span>
-                    {f.kind === 'food' ? '🍽' : '🏃'} {f.label}
+                    {f.kind === 'food' ? '🍽️' : '🏃'} {f.label}
                   </span>
                   <span className="flex items-center gap-2 text-ink-secondary">
                     {f.kind === 'exercise' ? '−' : ''}
