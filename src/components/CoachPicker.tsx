@@ -23,6 +23,7 @@ export default function CoachPicker({
   const current = COACHES.find((c) => c.id === value)
   const [gender, setGender] = useState<CoachGender | 'any'>(current?.gender ?? 'any')
   const [age, setAge] = useState<CoachAgeBand | 'any'>(current?.ageBand ?? 'any')
+  /** Set when the user taps a coach — plays that coach's intro with sound */
   const [previewing, setPreviewing] = useState<string | null>(null)
 
   const matches = useMemo(
@@ -81,29 +82,34 @@ export default function CoachPicker({
         )}
       </div>
 
-      {current && !compact && (
+      {current && (
         <motion.div
           key={current.id}
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           className="mt-5 overflow-hidden rounded-3xl bg-white shadow-card hairline"
         >
-          <IntroPlayer coachId={current.id} />
-          <p className="p-4 text-sm leading-relaxed text-ink-secondary">{current.bio}</p>
+          <IntroPlayer coachId={current.id} autoPlay={previewing === current.id} compact={compact} />
+          <div className="p-4">
+            <p className="font-semibold">
+              {current.name} <span className="font-normal text-ink-secondary">· {current.ageBand} · {current.style}</span>
+            </p>
+            <p className="mt-1 text-sm leading-relaxed text-ink-secondary">{current.bio}</p>
+          </div>
         </motion.div>
       )}
     </div>
   )
 }
 
-/** Meet-your-coach clip with sound, tap to play */
-function IntroPlayer({ coachId }: { coachId: string }) {
+/** Meet-your-coach clip with sound. Plays immediately after the user taps a coach (a user gesture, so autoplay is allowed). */
+function IntroPlayer({ coachId, autoPlay, compact }: { coachId: string; autoPlay: boolean; compact: boolean }) {
   const coach = COACHES.find((c) => c.id === coachId)!
-  const [playing, setPlaying] = useState(false)
+  const [playing, setPlaying] = useState(autoPlay)
   return (
     <button
       onClick={() => setPlaying((p) => !p)}
-      className="relative block aspect-[4/5] w-full max-h-[420px] bg-black"
+      className={`relative block w-full bg-black ${compact ? 'aspect-[4/3] max-h-[300px]' : 'aspect-[4/5] max-h-[420px]'}`}
       aria-label={playing ? 'Pause intro' : `Play ${coach.name}'s intro`}
     >
       <video
@@ -113,7 +119,7 @@ function IntroPlayer({ coachId }: { coachId: string }) {
         preload="metadata"
         ref={(v) => {
           if (!v) return
-          if (playing) v.play().catch(() => {})
+          if (playing) v.play().catch(() => setPlaying(false))
           else v.pause()
         }}
         onEnded={() => setPlaying(false)}
