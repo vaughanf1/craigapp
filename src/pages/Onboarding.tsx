@@ -133,8 +133,8 @@ export default function Onboarding() {
           }
         : {}),
     })
-    // With a server, the coach needs your number to ring you
-    navigate(api.connected && !state.session ? '/signin' : '/app')
+    // With a server, the coach needs your number to ring you; then it builds your plan
+    navigate(api.connected && !state.session ? '/signin?next=/app/plan' : '/app/plan')
   }
 
   const next = () => {

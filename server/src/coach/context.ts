@@ -44,5 +44,7 @@ export function buildContext(user: repo.User): CoachContext {
     today,
     localTime: time,
     streak: currentStreak(checkIns, today),
+    weighIns: repo.listWeighIns(user.id),
+    actionLog: repo.listActionLog(user.id, shiftDate(today, -6)),
   }
 }

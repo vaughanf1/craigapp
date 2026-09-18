@@ -22,6 +22,8 @@ export interface GoalArea {
 export type VoiceAccent = 'british' | 'american'
 
 export type { Coach, CoachGender, CoachAgeBand } from '../../shared/coaches.ts'
+import type { Roadmap } from '../../shared/roadmap.ts'
+export type { Roadmap }
 
 /** Craig's 7-step goal framework */
 export interface GoalPlan {
@@ -34,6 +36,8 @@ export interface GoalPlan {
   targetDate: string
   /** Halfway milestone — "by the inch it's a cinch" */
   milestone?: string
+  /** The reverse-engineered plan the coach built from the goal and date */
+  roadmap?: Roadmap
 }
 
 export interface FoodEntry {
@@ -43,6 +47,17 @@ export interface FoodEntry {
   /** negative calories = exercise burn */
   kind: 'food' | 'exercise'
   timestamp: number
+}
+
+export interface WeighIn {
+  date: string
+  kg: number
+}
+
+export interface ActionLog {
+  date: string
+  actionId: string
+  done: boolean
 }
 
 export interface CheckInRecord {
@@ -93,6 +108,8 @@ export interface AppState {
   checkIns: CheckInRecord[]
   foodLog: FoodEntry[]
   chat: ChatMessage[]
+  weighIns: WeighIn[]
+  actionLog: ActionLog[]
   /** Present when signed in to a Be More server */
   session: Session | null
 }

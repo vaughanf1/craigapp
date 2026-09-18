@@ -15,8 +15,8 @@ const Brief = z.object({
 export type BriefContent = z.infer<typeof Brief>
 
 const INSTRUCTIONS: Record<DeliveryKind, string> = {
-  morning: `It's the MORNING CALL. Structure: (1) greet by name, (2) yesterday in one sentence with real numbers — calories vs target, or the check-in — and if they missed, say plainly we are not making up for it, (3) today's one focus, drawn from their plan, obstacles or the tomorrowFocus from last night, (4) one question that invites a reply.`,
-  evening: `It's the EVENING REVIEW. Structure: (1) greet, (2) executive summary of today — what they logged, what they did, in real numbers, (3) what we're focusing on tomorrow — one thing, specific, (4) ask if that sounds right and wish them a good evening.`,
+  morning: `It's the MORNING CALL. Structure: (1) greet by name, (2) yesterday in one sentence with real numbers — calories vs target, actions ticked, or the check-in — and if they missed, say plainly we are not making up for it, (3) where they stand against the current stop on the plan (days left, on track or behind — say it kindly and specifically), (4) today's daily actions, named, and the one that matters most, (5) one question that invites a reply.`,
+  evening: `It's the EVENING REVIEW. Structure: (1) greet, (2) executive summary of today in real numbers — what they logged, which daily actions they ticked and which they didn't, (3) ask directly about any action not ticked — did they do it? (their answer will be recorded), (4) tomorrow's one focus, tied to the current stop on the plan, (5) wish them a good evening.`,
   manual: `They asked you to call them right now. Greet warmly, say something specific about where they are today, and ask what's on their mind.`,
 }
 

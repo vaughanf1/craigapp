@@ -1,12 +1,28 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useStore } from '../../lib/store'
 import { getArea } from '../../data/goalAreas'
+import { getCoach } from '../../data/coaches'
+import { api } from '../../lib/api'
 import { Card, Rise } from '../../components/ui'
+import { DailyActions, RoadmapTimeline, WeightStanding } from '../../components/Roadmap'
 
 export default function GoalPlan() {
-  const { state } = useStore()
+  const { state, online, setRoadmap } = useStore()
   const profile = state.profile!
   const area = getArea(profile.areaId)
+  const coach = getCoach(profile.coachId)
+  const roadmap = profile.plan.roadmap
+  const [rebuilding, setRebuilding] = useState(false)
+
+  const rebuild = async () => {
+    setRebuilding(true)
+    try {
+      setRoadmap(await api.coach.roadmap())
+    } finally {
+      setRebuilding(false)
+    }
+  }
 
   const progress = useMemo(() => {
     const start = profile.createdAt
@@ -26,7 +42,7 @@ export default function GoalPlan() {
     <div className="space-y-5">
       <Rise>
         <h1 className="display-tight text-3xl font-semibold">Your goal.</h1>
-        <p className="mt-1 text-ink-secondary">The 7-step plan you built. Reread it daily.</p>
+        <p className="mt-1 text-ink-secondary">The plan {coach.name} works you towards, call by call.</p>
       </Rise>
 
       <Rise delay={0.05}>
@@ -52,6 +68,54 @@ export default function GoalPlan() {
           )}
         </div>
       </Rise>
+
+      {roadmap ? (
+        <>
+          <Rise delay={0.08}>
+            <WeightStanding roadmap={roadmap} />
+          </Rise>
+          <Rise delay={0.1}>
+            <DailyActions roadmap={roadmap} />
+          </Rise>
+          <Rise delay={0.12}>
+            <Card className="p-5">
+              <div className="mb-4 flex items-baseline justify-between">
+                <h2 className="font-semibold">The stops</h2>
+                {online && (
+                  <button onClick={rebuild} disabled={rebuilding} className="text-sm text-accent disabled:opacity-40">
+                    {rebuilding ? 'Rebuilding…' : 'Rebuild plan'}
+                  </button>
+                )}
+              </div>
+              <p className="mb-4 text-[15px] leading-relaxed text-ink-secondary">{roadmap.summary}</p>
+              <RoadmapTimeline roadmap={roadmap} />
+            </Card>
+          </Rise>
+          <Rise delay={0.14}>
+            <Card className="p-5">
+              <h2 className="font-semibold">Every week</h2>
+              <ul className="mt-2 space-y-1.5 text-[15px]">
+                {roadmap.weeklyCommitments.map((c) => (
+                  <li key={c} className="flex gap-2">
+                    <span className="text-accent">•</span>
+                    {c}
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          </Rise>
+        </>
+      ) : (
+        <Rise delay={0.08}>
+          <Card className="p-5">
+            <p className="font-semibold">No plan yet</p>
+            <p className="mt-1 text-sm text-ink-secondary">{coach.name} can reverse-engineer your goal into dated stops and daily actions.</p>
+            <Link to="/app/plan" className="mt-3 inline-block rounded-full bg-accent px-5 py-2.5 text-sm font-medium text-white">
+              Build my plan
+            </Link>
+          </Card>
+        </Rise>
+      )}
 
       {sections
         .filter((s) => s.items.length > 0)

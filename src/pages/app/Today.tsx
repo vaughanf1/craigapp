@@ -17,6 +17,7 @@ import {
 import { COMMON_EXERCISE, COMMON_FOODS } from '../../data/calories'
 import { parseFood } from '../../lib/food'
 import { Card, CoachAvatar, Rise } from '../../components/ui'
+import { DailyActions } from '../../components/Roadmap'
 import type { FoodEntry } from '../../lib/types'
 
 /* Speech recognition (voice food logging) — vendor-prefixed in most browsers */
@@ -93,6 +94,12 @@ export default function Today() {
           <span className="rounded-full bg-leaf px-3.5 py-1.5 text-sm font-semibold">Call</span>
         </Link>
       </Rise>
+
+      {profile.plan.roadmap && (
+        <Rise delay={0.04}>
+          <DailyActions roadmap={profile.plan.roadmap} />
+        </Rise>
+      )}
 
       {/* Streak + countdown */}
       <Rise delay={0.05}>

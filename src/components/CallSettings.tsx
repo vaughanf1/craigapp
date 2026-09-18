@@ -85,8 +85,8 @@ export default function CallSettings() {
       <Card className="p-5">
         <h2 className="font-semibold">Calls & check-ins</h2>
         <p className="mt-1 text-sm leading-relaxed text-ink-secondary">
-          {coach.name} can ring you every morning and evening — a real call to your phone, or a notification that opens
-          a video call in the app. Sign in with your number to switch it on.
+          {coach.name} rings your phone every morning and evening — a real call, not a notification. Sign in with your
+          number to switch it on.
         </p>
         <div className="mt-4 flex gap-2">
           <Link to="/signin" className="rounded-full bg-accent px-5 py-2.5 text-sm font-medium text-white">Sign in</Link>
@@ -153,22 +153,22 @@ export default function CallSettings() {
 
       <div className="flex items-center justify-between p-5">
         <div>
-          <p className="font-semibold">Notification call</p>
-          <p className="text-sm text-ink-secondary">
-            {push === 'denied' ? 'Blocked in browser settings' : pushAvailable ? 'Opens a video call in the app' : 'Not configured on this server'}
-          </p>
-        </div>
-        {schedule && toggle(schedule.channels.includes('push') && push === 'on', togglePush, busy === 'push' || !pushAvailable)}
-      </div>
-
-      <div className="flex items-center justify-between p-5">
-        <div>
           <p className="font-semibold">Phone call</p>
           <p className="text-sm text-ink-secondary">
             {callsAvailable ? `Rings ${state.session?.phone}` : 'Calling isn\'t switched on for this server yet'}
           </p>
         </div>
         {schedule && toggle(schedule.channels.includes('call'), toggleCall, !callsAvailable)}
+      </div>
+
+      <div className="flex items-center justify-between p-5">
+        <div>
+          <p className="font-semibold">Backup: in-app call</p>
+          <p className="text-sm text-ink-secondary">
+            {push === 'denied' ? 'Blocked in browser settings' : pushAvailable ? 'If the phone can\'t ring, a notification opens a video call' : 'Not configured on this server'}
+          </p>
+        </div>
+        {schedule && toggle(schedule.channels.includes('push') && push === 'on', togglePush, busy === 'push' || !pushAvailable)}
       </div>
 
       <div className="p-5">

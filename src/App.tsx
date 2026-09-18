@@ -14,6 +14,7 @@ const Legal = lazy(() => import('./pages/Legal'))
 const SignIn = lazy(() => import('./pages/SignIn'))
 const Call = lazy(() => import('./pages/app/Call'))
 const Memory = lazy(() => import('./pages/app/Memory'))
+const PlanIntro = lazy(() => import('./pages/app/PlanIntro'))
 
 // Single-file (artifact) builds have no server to handle path routing
 const Router = import.meta.env.MODE === 'artifact' ? HashRouter : BrowserRouter
@@ -23,6 +24,12 @@ function CallGate() {
   const { state } = useStore()
   if (!state.profile) return <Navigate to="/start" replace />
   return <Call />
+}
+
+function PlanGate() {
+  const { state } = useStore()
+  if (!state.profile) return <Navigate to="/start" replace />
+  return <PlanIntro />
 }
 
 function Loading() {
@@ -45,6 +52,7 @@ export default function App() {
               <Route path="/signin" element={<SignIn />} />
               <Route path="/app/call" element={<CallGate />} />
               <Route path="/app/call/:id" element={<CallGate />} />
+              <Route path="/app/plan" element={<PlanGate />} />
               <Route path="/privacy" element={<Legal section="privacy" />} />
               <Route path="/terms" element={<Legal section="terms" />} />
               <Route path="/app" element={<AppShell />}>

@@ -39,7 +39,7 @@ export function CoachFace({
   }, [playing])
 
   return (
-    <div className={`relative shrink-0 ${SIZES[size]} ${className}`}>
+    <div className={`relative shrink-0 rounded-full ${SIZES[size]} ${className}`}>
       {speaking && (
         <>
           <span className="absolute inset-0 animate-ping rounded-full bg-accent/30" />

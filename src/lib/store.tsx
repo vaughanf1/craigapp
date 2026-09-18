@@ -1,10 +1,10 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react'
-import type { AppState, CheckInRecord, ChatMessage, FoodEntry, UserProfile } from './types'
+import type { ActionLog, AppState, CheckInRecord, ChatMessage, FoodEntry, Roadmap, UserProfile, WeighIn } from './types'
 import { api, mirror, type MeResponse } from './api'
 
 const STORAGE_KEY = 'bemore-state-v1'
 
-const EMPTY: AppState = { profile: null, checkIns: [], foodLog: [], chat: [], session: null }
+const EMPTY: AppState = { profile: null, checkIns: [], foodLog: [], chat: [], weighIns: [], actionLog: [], session: null }
 
 function load(): AppState {
   try {
@@ -24,6 +24,9 @@ interface Store {
   addFood: (f: FoodEntry) => void
   removeFood: (id: string) => void
   addChat: (m: ChatMessage) => void
+  addWeighIn: (w: WeighIn) => void
+  setAction: (a: ActionLog) => void
+  setRoadmap: (r: Roadmap) => void
   reset: () => void
   /** Whether this build talks to a Be More server and the user is signed in */
   online: boolean
@@ -52,6 +55,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       profile: me.user.profile ?? s.profile,
       checkIns: me.checkIns,
       foodLog: me.foodLog,
+      weighIns: me.weighIns ?? [],
+      actionLog: me.actionLog ?? [],
       chat: me.chat.map((m) => ({ id: m.id, from: m.from, text: m.text, timestamp: m.timestamp })),
       session: { phone: me.user.phone, userId: me.user.id, timezone: me.user.timezone, memoryCount: me.memoryCount },
     }))
@@ -95,6 +100,19 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       mirror(() => api.removeFood(id))
     },
     addChat: (m) => setState((s) => ({ ...s, chat: [...s.chat.slice(-199), m] })),
+    addWeighIn: (w) => {
+      setState((s) => ({ ...s, weighIns: [...s.weighIns.filter((x) => x.date !== w.date), w].sort((a, b) => a.date.localeCompare(b.date)) }))
+      mirror(() => api.weighIn(w))
+    },
+    setAction: (a) => {
+      setState((s) => ({
+        ...s,
+        actionLog: [...s.actionLog.filter((x) => !(x.date === a.date && x.actionId === a.actionId)), a],
+      }))
+      mirror(() => api.setAction(a))
+    },
+    setRoadmap: (roadmap) =>
+      setState((s) => (s.profile ? { ...s, profile: { ...s.profile, plan: { ...s.profile.plan, roadmap } } } : s)),
     reset: () => {
       api.signOut()
       setState(EMPTY)

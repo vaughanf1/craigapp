@@ -30,6 +30,19 @@ export const AREA_TONE: Record<GoalAreaId, string> = {
   legacy: 'Reflective and long-horizon. Connect today to the life they want to have lived.',
 }
 
+import type { Roadmap } from '../../../shared/roadmap.ts'
+export type { Roadmap }
+
+export interface WeighIn {
+  date: string
+  kg: number
+}
+export interface ActionLog {
+  date: string
+  actionId: string
+  done: boolean
+}
+
 export interface GoalPlan {
   statement: string
   benefits: string[]
@@ -40,6 +53,7 @@ export interface GoalPlan {
   targetDate: string
   /** Halfway milestone the coach proposed ("by the inch it's a cinch") */
   milestone?: string
+  roadmap?: Roadmap
 }
 
 export interface UserProfile {

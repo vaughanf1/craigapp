@@ -22,13 +22,13 @@ const HOW = [
   },
   {
     step: '02',
-    title: 'Set your goal',
-    text: 'Choose a life area, then work through the 7-step framework: your goal, what’s in it for you, your supporters, obstacles, skills, action plan and target date.',
+    title: 'It works backwards from your goal',
+    text: 'Give it the goal and the date. Your coach reverse-engineers it into dated stops, weekly commitments and daily actions — by the inch it’s a cinch — and tracks you against them.',
   },
   {
     step: '03',
-    title: 'Your coach rings you',
-    text: 'Every morning: what happened yesterday, in real numbers, and the one thing for today. Every evening: the summary and tomorrow’s focus. A notification that opens a video call — or an actual call to your phone.',
+    title: 'Your phone rings',
+    text: 'A real call, morning and evening — not a notification. Yesterday in numbers, today’s one thing, and in the evening: what got done. You talk, your coach listens and answers.',
   },
   {
     step: '04',
@@ -72,19 +72,19 @@ export default function Landing() {
           transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
         >
           <p className="mb-4 text-sm font-semibold uppercase tracking-widest text-accent">
-            Your personal AI coach
+            Accountability, not notifications
           </p>
           <h1 className="display-tight mx-auto max-w-3xl text-5xl font-semibold sm:text-7xl">
-            Be the best person
+            A coach who
             <br />
             <span className="bg-gradient-to-r from-indigo via-sky to-mint bg-clip-text text-transparent">
-              you can be.
+              actually rings you.
             </span>
           </h1>
           <p className="mx-auto mt-6 max-w-xl text-lg leading-relaxed text-ink-secondary sm:text-xl">
-            Be More is the AI gym buddy for your whole life. A coach who talks to you every day —
-            motivating you, encouraging you, and keeping you on track towards whatever goal you’re
-            chasing.
+            Every morning and every evening, your phone rings. It’s your coach — with yesterday’s
+            numbers, today’s one thing, and a plan they worked out backwards from your goal.
+            Not another app you swipe away.
           </p>
           <div className="mt-9 flex items-center justify-center gap-4">
             <Link
@@ -102,25 +102,39 @@ export default function Landing() {
           </div>
         </motion.div>
 
-        {/* Floating coach preview card */}
-        <Rise delay={0.25} className="mx-auto mt-16 max-w-sm">
-          <div className="rounded-4xl bg-white p-6 text-left shadow-float hairline">
-            <div className="flex items-center gap-4">
-              <CoachAvatar coach={COACHES[4]} size="md" />
-              <div>
-                <p className="font-semibold">Elena</p>
-                <p className="text-sm text-ink-secondary">Your coach · 9:02 AM</p>
-              </div>
+        {/* Incoming call mock */}
+        <Rise delay={0.25} className="mx-auto mt-16 max-w-xs">
+          <div className="rounded-4xl bg-[#0b0b0f] p-6 text-center text-white shadow-float">
+            <p className="text-[11px] uppercase tracking-[0.2em] text-white/50">Be More · coach call</p>
+            <div className="mx-auto mt-5 w-fit">
+              <CoachAvatar coach={COACHES[6]} size="xl" className="ring-4 ring-white/15" />
             </div>
-            <div className="mt-4 space-y-2">
-              <div className="w-fit max-w-[85%] rounded-3xl rounded-tl-lg bg-fog px-4 py-2.5 text-[15px]">
-                Morning, Craig! That’s 4 days in a row — you’re doing brilliantly. 🎉
-              </div>
-              <div className="w-fit max-w-[85%] rounded-3xl rounded-tl-lg bg-fog px-4 py-2.5 text-[15px]">
-                Let’s make it happen today. How did you get on with your goal yesterday?
-              </div>
+            <p className="mt-4 text-2xl font-semibold">Margaret</p>
+            <p className="text-white/60">Incoming call · 9:00</p>
+            <p className="mx-auto mt-5 max-w-[240px] rounded-2xl bg-white/10 px-4 py-2.5 text-left text-sm leading-relaxed">
+              “Morning Craig. 1,650 yesterday against 1,800 — cooking on gas. Today: one slice at
+              the office, not three. What time’s lunch?”
+            </p>
+            <div className="mt-6 flex justify-center gap-10">
+              <span className="flex h-14 w-14 items-center justify-center rounded-full bg-[#ff3b30] text-xl">✕</span>
+              <span className="flex h-14 w-14 items-center justify-center rounded-full bg-[#34c759] text-xl">✓</span>
             </div>
           </div>
+        </Rise>
+
+        {/* A day with Be More */}
+        <Rise delay={0.35} className="mx-auto mt-16 grid max-w-3xl gap-3 text-left sm:grid-cols-3">
+          {[
+            ['09:00', 'The morning call', 'Yesterday in real numbers. Where you stand against the plan. The one thing for today.'],
+            ['During the day', 'Tick, log, talk', 'Tick off the daily actions. Log food by voice. Message your coach when it wobbles.'],
+            ['19:00', 'The evening review', 'What got done, what didn’t — said out loud. Tomorrow’s focus, set. It all goes into memory.'],
+          ].map(([time, title, text]) => (
+            <div key={time} className="rounded-3xl bg-white p-5 shadow-card hairline">
+              <p className="text-xs font-semibold uppercase tracking-wider text-accent">{time}</p>
+              <p className="mt-1 font-semibold">{title}</p>
+              <p className="mt-1 text-sm leading-relaxed text-ink-secondary">{text}</p>
+            </div>
+          ))}
         </Rise>
       </section>
 

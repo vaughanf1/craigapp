@@ -45,7 +45,8 @@ export default function SignIn() {
       // A profile built on this device before signing in moves to the account
       if (!user.profile && state.profile) await api.saveProfile(state.profile)
       hydrate(await api.me())
-      navigate(user.profile || state.profile ? next : '/start', { replace: true })
+      const profile = user.profile ?? state.profile
+      navigate(!profile ? '/start' : profile.plan.roadmap ? next.replace('/app/plan', '/app') : next, { replace: true })
     } catch (e) {
       setError(e instanceof ApiError ? e.message : 'Could not reach the server')
     } finally {

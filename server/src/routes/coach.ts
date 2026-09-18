@@ -4,6 +4,7 @@ import * as repo from '../lib/repo.ts'
 import { reply } from '../coach/chat.ts'
 import { deliver } from '../coach/deliver.ts'
 import { remember } from '../coach/memory.ts'
+import { generateRoadmap } from '../coach/roadmap.ts'
 import { localParts } from '../lib/time.ts'
 import { requireUser, requireProfile, type Env } from './middleware.ts'
 
@@ -57,6 +58,14 @@ app.post('/deliveries/:id/missed', (c) => {
   if (!d || d.userId !== c.get('user').id) return c.json({ error: 'Not found' }, 404)
   if (d.status !== 'answered') repo.setDeliveryStatus(d.id, 'missed')
   return c.json({ ok: true })
+})
+
+/** Build (or rebuild) the reverse-engineered plan and store it on the profile */
+app.post('/roadmap', async (c) => {
+  const user = requireProfile(c)
+  const roadmap = await generateRoadmap(user)
+  repo.saveProfile(user.id, { ...user.profile, plan: { ...user.profile.plan, roadmap } })
+  return c.json(roadmap)
 })
 
 /* ---------- memory ---------- */

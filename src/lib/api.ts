@@ -1,4 +1,4 @@
-import type { CheckInRecord, FoodEntry, UserProfile } from './types'
+import type { ActionLog, CheckInRecord, FoodEntry, Roadmap, UserProfile, WeighIn } from './types'
 
 /**
  * Be More API client. When VITE_API_URL is unset the app runs local-only
@@ -100,6 +100,8 @@ export interface MeResponse {
   user: ServerUser
   checkIns: CheckInRecord[]
   foodLog: FoodEntry[]
+  weighIns: WeighIn[]
+  actionLog: ActionLog[]
   chat: { id: string; from: 'user' | 'coach'; text: string; timestamp: number; channel: string }[]
   schedule: Schedule
   memoryCount: number
@@ -132,6 +134,8 @@ export const api = {
   checkIn: (c: CheckInRecord) => post<{ ok: true }>('/me/checkins', c),
   addFood: (f: FoodEntry) => post<{ ok: true }>('/me/food', f),
   removeFood: (id: string) => del<{ ok: true }>(`/me/food/${id}`),
+  weighIn: (w: WeighIn) => post<{ ok: true }>('/me/weighins', w),
+  setAction: (a: ActionLog) => post<{ ok: true }>('/me/actions', a),
   schedule: () => request<Schedule>('/me/schedule'),
   saveSchedule: (s: Schedule) => put<Schedule>('/me/schedule', s),
   exportData: () => request<unknown>('/me/export'),
@@ -141,6 +145,7 @@ export const api = {
   },
 
   coach: {
+    roadmap: () => post<Roadmap>('/coach/roadmap'),
     message: (text: string, channel: 'chat' | 'call' = 'chat') => post<{ reply: string }>('/coach/message', { text, channel }),
     callNow: (channels: ('push' | 'call')[]) => post<Delivery>('/coach/call-now', { channels }),
     deliveries: () => request<Delivery[]>('/coach/deliveries'),

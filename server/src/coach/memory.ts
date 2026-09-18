@@ -25,6 +25,9 @@ const MemoryUpdate = z.object({
     struggles: z.string(),
     tomorrowFocus: z.string().describe('The single most useful thing to focus on tomorrow'),
   }).nullable().describe('Only when the conversation revealed something about today; otherwise null'),
+  actionsDone: z.array(z.string()).describe('IDs of daily actions (from the list) they said they completed today'),
+  actionsMissed: z.array(z.string()).describe('IDs of daily actions they said they did NOT do today'),
+  weighIn: z.number().nullable().describe('If they stated their current weight today, in kg (convert stone/lbs); otherwise null'),
 })
 
 const pending = new Map<string, NodeJS.Timeout>()
@@ -61,6 +64,9 @@ Their goal: ${user.profile.plan.statement}
 Today (their local date): ${date}
 Today's food log: ${ctx.todayFood.map((f) => `${f.label} ${f.calories}`).join(', ') || 'nothing logged'}${user.profile.calorieTarget ? ` (target ${user.profile.calorieTarget})` : ''}
 
+Daily actions on their plan (id: text):
+${user.profile.plan.roadmap?.dailyActions.map((a) => `${a.id}: ${a.text}`).join('\n') || '(no plan yet)'}
+
 EXISTING MEMORIES (id: text)
 ${existing.map((m) => `${m.id}: [${m.kind}] ${m.text}`).join('\n') || '(none)'}`,
     messages: [{ role: 'user', content: `NEW CONVERSATION\n${transcript}` }],
@@ -87,6 +93,10 @@ ${existing.map((m) => `${m.id}: [${m.kind}] ${m.text}`).join('\n') || '(none)'}`
       caloriesTarget: user.profile.calorieTarget ?? null,
     })
   }
+  const actionIds = new Set(user.profile.plan.roadmap?.dailyActions.map((a) => a.id) ?? [])
+  for (const id of out.actionsDone) if (actionIds.has(id)) repo.setAction(userId, { date, actionId: id, done: true })
+  for (const id of out.actionsMissed) if (actionIds.has(id)) repo.setAction(userId, { date, actionId: id, done: false })
+  if (out.weighIn && out.weighIn > 20 && out.weighIn < 400) repo.upsertWeighIn(userId, { date, kg: out.weighIn })
   repo.markMemorised(fresh.map((m) => m.id))
   return { added: out.add.length, archived: toArchive.length }
 }

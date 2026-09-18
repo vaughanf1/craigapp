@@ -97,10 +97,23 @@ CREATE TABLE IF NOT EXISTS day_summaries (
   updated_at INTEGER NOT NULL,
   PRIMARY KEY (user_id, date)
 );
+CREATE TABLE IF NOT EXISTS weigh_ins (
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  date TEXT NOT NULL,
+  kg REAL NOT NULL,
+  PRIMARY KEY (user_id, date)
+);
+CREATE TABLE IF NOT EXISTS action_log (
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  date TEXT NOT NULL,
+  action_id TEXT NOT NULL,
+  done INTEGER NOT NULL,
+  PRIMARY KEY (user_id, date, action_id)
+);
 CREATE TABLE IF NOT EXISTS schedules (
   user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
   times_json TEXT NOT NULL DEFAULT '["09:00","19:00"]',
-  channels_json TEXT NOT NULL DEFAULT '["push"]',
+  channels_json TEXT NOT NULL DEFAULT '["push","call"]',
   enabled INTEGER NOT NULL DEFAULT 1
 );
 CREATE TABLE IF NOT EXISTS push_subscriptions (

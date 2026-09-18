@@ -64,7 +64,7 @@ describe('profile, schedule, data', () => {
     const me = await (await api('/me', {}, token)).json() as any
     expect(me.user.profile.name).toBe('Craig')
     expect(me.user.profile.aiApiKey).toBeUndefined()
-    expect(me.schedule).toEqual({ times: ['09:00', '19:00'], channels: ['push'], enabled: true })
+    expect(me.schedule).toEqual({ times: ['09:00', '19:00'], channels: ['push', 'call'], enabled: true })
   })
   it('sets call times and channels', async () => {
     const r = await api('/me/schedule', { method: 'PUT', body: JSON.stringify({ times: ['21:00', '08:15', '08:15'], channels: ['push', 'call'], enabled: true }) }, token)
@@ -111,6 +111,7 @@ describe('coach brain', () => {
         ],
         archive: [],
         day: { summary: 'A solid start with porridge and a dog walk.', mood: 'upbeat', wins: 'Skipped the cake', struggles: '', tomorrowFocus: 'Log lunch before eating it' },
+        actionsDone: [], actionsMissed: [], weighIn: null,
       },
     })
     const result = await remember(repo.findUserByPhone('+447700900123')!.id)
@@ -140,6 +141,67 @@ describe('coach brain', () => {
     await api(`/coach/memory/${id}`, { method: 'DELETE' }, token)
     const after = await (await api('/coach/memory', {}, token)).json() as any
     expect(after.memories.find((m: { id: string }) => m.id === id)).toBeUndefined()
+  })
+})
+
+describe('the plan & progress', () => {
+  it('builds a roadmap with Claude and stores it on the profile', async () => {
+    parseMock.mockResolvedValueOnce({
+      parsed_output: {
+        summary: 'First stop is 12 stone 2 by the end of October. One stop at a time.',
+        milestones: [
+          { title: 'First stop: 12 stone 2', targetDate: '2026-10-30', metric: { label: 'Weight', target: 77, unit: 'kg' }, why: 'Halfway feels close.' },
+          { title: 'Goal: 11 stone', targetDate: '2027-01-01', metric: { label: 'Weight', target: 70, unit: 'kg' }, why: 'The one you wrote down.' },
+        ],
+        weeklyCommitments: ['Cake: one slice, not three', 'Both calls, every day'],
+        dailyActions: ['Log every meal', 'Walk 20 minutes', 'No food after 9pm'],
+      },
+    })
+    const r = await api('/coach/roadmap', { method: 'POST' }, token)
+    expect(r.status).toBe(200)
+    const roadmap = await r.json() as any
+    expect(roadmap.source).toBe('coach')
+    expect(roadmap.dailyActions).toEqual([{ id: 'a1', text: 'Log every meal' }, { id: 'a2', text: 'Walk 20 minutes' }, { id: 'a3', text: 'No food after 9pm' }])
+    const me = await (await api('/me', {}, token)).json() as any
+    expect(me.user.profile.plan.roadmap.milestones[0].title).toBe('First stop: 12 stone 2')
+  })
+
+  it('falls back to the local plan when Claude is unavailable', async () => {
+    parseMock.mockRejectedValueOnce(new Error('no key'))
+    const roadmap = await (await api('/coach/roadmap', { method: 'POST' }, token)).json() as any
+    expect(roadmap.source).toBe('local')
+    expect(roadmap.milestones.at(-1).metric.target).toBe(70)
+    // restore the coach-built one for the tests below
+    parseMock.mockResolvedValueOnce({ parsed_output: { summary: 's', milestones: [{ title: 'First stop', targetDate: '2099-10-30', metric: { label: 'Weight', target: 77, unit: 'kg' }, why: 'w' }], weeklyCommitments: ['c'], dailyActions: ['Log every meal', 'Walk 20 minutes'] } })
+    await api('/coach/roadmap', { method: 'POST' }, token)
+  })
+
+  it('records weigh-ins and ticked actions, and the coach sees where they stand', async () => {
+    const today = localParts('Europe/London').date
+    expect((await api('/me/weighins', { method: 'POST', body: JSON.stringify({ date: today, kg: 82.1 }) }, token)).status).toBe(200)
+    expect((await api('/me/actions', { method: 'POST', body: JSON.stringify({ date: today, actionId: 'a1', done: true }) }, token)).status).toBe(200)
+    expect((await api('/me/weighins', { method: 'POST', body: JSON.stringify({ date: today, kg: 5 }) }, token)).status).toBe(400)
+
+    createMock.mockResolvedValueOnce({ stop_reason: 'end_turn', content: [{ type: 'text', text: 'ok' }] })
+    await api('/coach/message', { method: 'POST', body: JSON.stringify({ text: 'How am I doing?' }) }, token)
+    const ctx = createMock.mock.calls.at(-1)![0].system[1].text
+    expect(ctx).toContain('THE PLAN')
+    expect(ctx).toContain('→ First stop — by 2099-10-30 (12 stone 2)')
+    expect(ctx).toContain('Latest weigh-in: 12 stone 13')
+    expect(ctx).toContain('[a1] Log every meal — 1/7 days this week, done today')
+    expect(ctx).toContain('[a2] Walk 20 minutes — 0/7 days this week')
+  })
+
+  it('the evening call records what they say they did', async () => {
+    createMock.mockResolvedValueOnce({ stop_reason: 'end_turn', content: [{ type: 'text', text: 'Good.' }] })
+    await api('/coach/message', { method: 'POST', body: JSON.stringify({ text: 'Did my walk, skipped logging lunch, and I was 12 stone 12 this morning', channel: 'call' }) }, token)
+    parseMock.mockResolvedValueOnce({ parsed_output: { add: [], archive: [], day: null, actionsDone: ['a2'], actionsMissed: ['a1'], weighIn: 81.6 } })
+    await remember(repo.findUserByPhone('+447700900123')!.id)
+    const me = await (await api('/me', {}, token)).json() as any
+    const today = localParts('Europe/London').date
+    expect(me.actionLog).toContainEqual({ date: today, actionId: 'a2', done: true })
+    expect(me.actionLog).toContainEqual({ date: today, actionId: 'a1', done: false })
+    expect(me.weighIns.at(-1)).toEqual({ date: today, kg: 81.6 })
   })
 })
 

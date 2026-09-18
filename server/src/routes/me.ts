@@ -17,6 +17,8 @@ app.get('/', (c) => {
     user: publicUser(u),
     checkIns: repo.listCheckIns(u.id),
     foodLog: repo.listFood(u.id, Date.now() - 90 * 86400_000),
+    weighIns: repo.listWeighIns(u.id),
+    actionLog: repo.listActionLog(u.id, new Date(Date.now() - 30 * 86400_000).toISOString().slice(0, 10)),
     chat: repo.recentMessages(u.id, 200).map((m) => ({ id: m.id, from: m.role, text: m.text, timestamp: m.ts, channel: m.channel })),
     schedule: repo.getSchedule(u.id),
     memoryCount: repo.listMemories(u.id).length,
@@ -34,6 +36,7 @@ const Plan = z.object({
   actionPlan: z.string(),
   targetDate: z.string(),
   milestone: z.string().optional(),
+  roadmap: z.any().optional(),
 })
 const Profile = z.object({
   name: z.string().min(1).max(60),
@@ -86,6 +89,20 @@ app.post('/food', async (c) => {
   const body = z.object({ id: z.string(), label: z.string().max(200), calories: z.number(), kind: z.enum(['food', 'exercise']), timestamp: z.number() }).safeParse(await c.req.json())
   if (!body.success) return c.json({ error: 'Invalid entry' }, 400)
   repo.addFood(c.get('user').id, body.data)
+  return c.json({ ok: true })
+})
+
+app.post('/weighins', async (c) => {
+  const body = z.object({ date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), kg: z.number().min(20).max(400) }).safeParse(await c.req.json())
+  if (!body.success) return c.json({ error: 'Invalid weigh-in' }, 400)
+  repo.upsertWeighIn(c.get('user').id, body.data)
+  return c.json({ ok: true })
+})
+
+app.post('/actions', async (c) => {
+  const body = z.object({ date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), actionId: z.string().max(20), done: z.boolean() }).safeParse(await c.req.json())
+  if (!body.success) return c.json({ error: 'Invalid action' }, 400)
+  repo.setAction(c.get('user').id, body.data)
   return c.json({ ok: true })
 })
 

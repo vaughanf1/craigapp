@@ -1,7 +1,7 @@
 import { getDb } from './db.ts'
 import { uid } from './ids.ts'
 import type {
-  CheckIn, DaySummary, Delivery, DeliveryKind, FoodEntry, Memory, Schedule, UserProfile,
+  ActionLog, CheckIn, DaySummary, Delivery, DeliveryKind, FoodEntry, Memory, Schedule, UserProfile, WeighIn,
 } from './types.ts'
 
 export interface User {
@@ -91,6 +91,30 @@ export function addFood(userId: string, f: FoodEntry) {
 
 export function removeFood(userId: string, id: string) {
   getDb().prepare('DELETE FROM food_log WHERE user_id = ? AND id = ?').run(userId, id)
+}
+
+/* ---------- progress: weigh-ins & daily actions ---------- */
+
+export function listWeighIns(userId: string): WeighIn[] {
+  return (getDb().prepare('SELECT date, kg FROM weigh_ins WHERE user_id = ? ORDER BY date').all(userId) as Row[])
+    .map((r) => ({ date: r.date as string, kg: r.kg as number }))
+}
+
+export function upsertWeighIn(userId: string, w: WeighIn) {
+  getDb()
+    .prepare('INSERT INTO weigh_ins (user_id, date, kg) VALUES (?, ?, ?) ON CONFLICT(user_id, date) DO UPDATE SET kg = excluded.kg')
+    .run(userId, w.date, w.kg)
+}
+
+export function listActionLog(userId: string, sinceDate: string): ActionLog[] {
+  return (getDb().prepare('SELECT date, action_id, done FROM action_log WHERE user_id = ? AND date >= ? ORDER BY date').all(userId, sinceDate) as Row[])
+    .map((r) => ({ date: r.date as string, actionId: r.action_id as string, done: Boolean(r.done) }))
+}
+
+export function setAction(userId: string, a: ActionLog) {
+  getDb()
+    .prepare('INSERT INTO action_log (user_id, date, action_id, done) VALUES (?, ?, ?, ?) ON CONFLICT(user_id, date, action_id) DO UPDATE SET done = excluded.done')
+    .run(userId, a.date, a.actionId, a.done ? 1 : 0)
 }
 
 /* ---------- messages ---------- */
@@ -219,7 +243,7 @@ function toSchedule(r: Row): Schedule {
 
 export function getSchedule(userId: string): Schedule {
   const r = getDb().prepare('SELECT * FROM schedules WHERE user_id = ?').get(userId) as Row | undefined
-  return r ? toSchedule(r) : { times: ['09:00', '19:00'], channels: ['push'], enabled: true }
+  return r ? toSchedule(r) : { times: ['09:00', '19:00'], channels: ['push', 'call'], enabled: true }
 }
 
 export function saveSchedule(userId: string, s: Schedule) {

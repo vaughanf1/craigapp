@@ -1,7 +1,9 @@
 import { getCoach } from '../../../shared/coaches.ts'
 import { AREA_NAMES, AREA_TONE, type UserProfile, type Memory, type DaySummary, type FoodEntry, type CheckIn } from '../lib/types.ts'
 import { formatWeight, halfwayKg } from '../../../shared/units.ts'
+import { currentMilestone, daysBetween, weightProgress } from '../../../shared/roadmap.ts'
 import type { User } from '../lib/repo.ts'
+import type { ActionLog, WeighIn } from '../lib/types.ts'
 
 export interface CoachContext {
   user: User
@@ -14,6 +16,56 @@ export interface CoachContext {
   today: string                // user's local YYYY-MM-DD
   localTime: string            // user's local HH:MM
   streak: number
+  weighIns: WeighIn[]
+  actionLog: ActionLog[]       // last 7 days
+}
+
+/** The plan and where they stand against it — the heart of every call */
+export function progressBlock(ctx: CoachContext): string {
+  const { profile, today } = ctx
+  const roadmap = profile.plan.roadmap
+  if (!roadmap) return 'THE PLAN\n(not built yet — if they ask, tell them it\'s coming and ask what feels like a realistic first stop)'
+  const unit = profile.weightUnit ?? (profile.accent === 'american' ? 'lbs' : 'stone')
+  const { current, index } = currentMilestone(roadmap, today)
+  const fmtMetric = (m: { label: string; target: number; unit: string }) =>
+    m.unit === 'kg' ? formatWeight(m.target, unit) : `${m.target} ${m.unit}`
+
+  const stops = roadmap.milestones
+    .map((m, i) => `${i < index ? '✓' : i === index ? '→' : ' '} ${m.title} — by ${m.targetDate}${m.metric ? ` (${fmtMetric(m.metric)})` : ''}`)
+    .join('\n')
+
+  let standing = ''
+  if (current && profile.weightKg) {
+    const latest = ctx.weighIns.at(-1)
+    const startDate = new Date(profile.createdAt).toISOString().slice(0, 10)
+    const wp = latest ? weightProgress(roadmap, profile.weightKg, latest.kg, today, startDate) : null
+    if (latest && wp) {
+      standing = `Latest weigh-in: ${formatWeight(latest.kg, unit)} on ${latest.date}. To be on track for ${current.title} they'd be ${formatWeight(wp.expectedKg, unit)} today → they are ${wp.status}${wp.status !== 'on track' ? ` by ${formatWeight(Math.abs(wp.aheadKg), unit === 'stone' ? 'lbs' : unit)}` : ''}. ${wp.daysLeft} days to that stop.`
+    } else {
+      standing = `No weigh-in logged yet — ask them to hop on the scales this week. ${current ? `${daysBetween(today, current.targetDate)} days to ${current.title}.` : ''}`
+    }
+  } else if (current) {
+    standing = `${daysBetween(today, current.targetDate)} days to ${current.title}.`
+  }
+
+  const last7 = ctx.actionLog
+  const perAction = roadmap.dailyActions.map((a) => {
+    const done = last7.filter((l) => l.actionId === a.id && l.done).length
+    const todayDone = last7.some((l) => l.actionId === a.id && l.date === today && l.done)
+    return `- [${a.id}] ${a.text} — ${done}/7 days this week${todayDone ? ', done today' : ''}`
+  }).join('\n')
+
+  return `THE PLAN (reverse-engineered from their goal; ${roadmap.source === 'coach' ? 'you built it' : 'a first draft'})
+${roadmap.summary}
+Stops:
+${stops}
+Where they stand: ${standing || 'no data yet'}
+
+Weekly commitments:
+${roadmap.weeklyCommitments.map((c) => `- ${c}`).join('\n')}
+
+Daily actions (ask about these on the evening call; celebrate the ticks, ask about the gaps):
+${perAction}`
 }
 
 /**
@@ -109,5 +161,7 @@ Recent check-ins:
 ${recentCheckIns || '(none yet)'}
 
 Yesterday's food log: ${kcal(ctx.yesterdayFood)}
-Today's food log so far: ${kcal(ctx.todayFood)}`
+Today's food log so far: ${kcal(ctx.todayFood)}
+
+${progressBlock(ctx)}`
 }
