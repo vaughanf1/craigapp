@@ -39,7 +39,10 @@ export default function Onboarding() {
   const [step, setStep] = useState(0)
   const [name, setName] = useState('')
   const [dob, setDob] = useState('')
-  const [areaId, setAreaId] = useState<GoalAreaId | null>(null)
+  const [areaIds, setAreaIds] = useState<GoalAreaId[]>([])
+  const areaId = areaIds[0] ?? null
+  const toggleArea = (id: GoalAreaId) =>
+    setAreaIds((ids) => (ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]))
   const [statement, setStatement] = useState('')
   const [targetDate, setTargetDate] = useState('')
   const [benefits, setBenefits] = useState<string[]>([])
@@ -63,10 +66,10 @@ export default function Onboarding() {
   // Health goals get an extra step: body metrics for the calorie tracker
   const steps: readonly Step[] = useMemo(
     () =>
-      areaId === 'health'
+      areaIds.includes('health')
         ? ['about', 'area', 'goal', 'plan', 'health', 'coach', 'voice', 'done']
         : BASE_STEPS,
-    [areaId],
+    [areaIds],
   )
 
   // Craig: "here it's stone and pounds, in America it's pounds" — people type in their own units
@@ -96,7 +99,7 @@ export default function Onboarding() {
       case 'about':
         return name.trim().length > 0
       case 'area':
-        return !!areaId
+        return areaIds.length > 0
       case 'goal':
         return statement.trim().length > 0 && !!targetDate
       case 'plan':
@@ -116,13 +119,14 @@ export default function Onboarding() {
       name: name.trim(),
       dob,
       areaId,
+      areaIds,
       coachId,
       accent,
       voiceEnabled: true,
       checkInsPerDay,
       plan: { statement: statement.trim(), benefits, supporters, obstacles, skills, actionPlan, targetDate, milestone: milestone ?? undefined },
       createdAt: Date.now(),
-      ...(areaId === 'health'
+      ...(areaIds.includes('health')
         ? {
             sex,
             heightCm: metrics.heightCm,
@@ -207,29 +211,41 @@ export default function Onboarding() {
                 <h1 className="display-tight text-3xl font-semibold sm:text-4xl">
                   What do you want to be more of?
                 </h1>
-                <p className="mt-3 text-ink-secondary">Pick the area of your life you want to improve first.</p>
+                <p className="mt-3 text-ink-secondary">
+                  Pick as many areas as you like. The first one you tap is your main focus — it's what your coach
+                  builds the plan around.
+                </p>
                 <div className="mt-8 grid gap-3 sm:grid-cols-2">
-                  {GOAL_AREAS.map((a) => (
+                  {GOAL_AREAS.map((a) => {
+                    const pos = areaIds.indexOf(a.id)
+                    return (
                     <button
                       key={a.id}
-                      onClick={() => setAreaId(a.id)}
-                      className={`flex items-center gap-3 rounded-3xl p-4 text-left transition-all ${
-                        areaId === a.id
+                      onClick={() => toggleArea(a.id)}
+                      aria-pressed={pos !== -1}
+                      className={`relative flex items-center gap-3 rounded-3xl p-4 text-left transition-all ${
+                        pos !== -1
                           ? 'bg-white shadow-float ring-2 ring-accent'
                           : 'bg-white shadow-card hairline hover:shadow-float'
                       }`}
                     >
+                      {pos !== -1 && (
+                        <span className="absolute right-3 top-3 rounded-full bg-accent px-2 py-0.5 text-[11px] font-semibold text-white">
+                          {pos === 0 ? 'Main focus' : `#${pos + 1}`}
+                        </span>
+                      )}
                       <div
                         className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br ${a.gradient} text-xl`}
                       >
                         {a.icon}
                       </div>
-                      <div>
+                      <div className="pr-16">
                         <p className="font-semibold leading-tight">{a.name}</p>
                         <p className="mt-0.5 text-xs text-ink-secondary">{a.examples.slice(0, 2).join(' · ')}</p>
                       </div>
                     </button>
-                  ))}
+                    )
+                  })}
                 </div>
               </section>
             )}

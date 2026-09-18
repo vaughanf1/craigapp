@@ -32,6 +32,8 @@ export interface RoadmapInput {
   statement: string
   targetDate: string
   areaId: string
+  /** All chosen areas, main focus first — daily actions draw from each */
+  areaIds?: string[]
   actionPlan?: string
   obstacles?: string[]
   weightKg?: number
@@ -96,7 +98,13 @@ export function buildLocalRoadmap(input: RoadmapInput): Roadmap {
     .map((s) => s.trim())
     .filter((s) => s.length > 6)
     .slice(0, 3)
-  const actions = (fromPlan.length ? fromPlan : DEFAULT_ACTIONS[input.areaId] ?? DEFAULT_ACTIONS.personal)
+  const areas = input.areaIds?.length ? input.areaIds : [input.areaId]
+  // Two from the main focus, then one from each other area, up to four
+  const defaults = [
+    ...(DEFAULT_ACTIONS[areas[0]] ?? DEFAULT_ACTIONS.personal).slice(0, areas.length > 1 ? 2 : 3),
+    ...areas.slice(1).map((a) => (DEFAULT_ACTIONS[a] ?? DEFAULT_ACTIONS.personal)[0]),
+  ].slice(0, 4)
+  const actions = fromPlan.length ? fromPlan : defaults
   return {
     summary: `${totalDays} days to go, ${steps} stop${steps === 1 ? '' : 's'} along the way. We take it one stop at a time.`,
     milestones,

@@ -106,7 +106,10 @@ BOUNDARIES
 
 export function contextBlock(ctx: CoachContext): string {
   const { profile, user } = ctx
-  const area = AREA_NAMES[profile.areaId]
+  const areaIds = profile.areaIds?.length ? profile.areaIds : [profile.areaId]
+  const area = areaIds.length > 1
+    ? `${AREA_NAMES[areaIds[0]]} (main focus), plus ${areaIds.slice(1).map((a) => AREA_NAMES[a]).join(', ')}`
+    : AREA_NAMES[profile.areaId]
   const unit = profile.weightUnit ?? (profile.accent === 'american' ? 'lbs' : 'stone')
   const list = (items: string[]) => (items.length ? items.map((i) => `- ${i}`).join('\n') : '(none listed)')
 
@@ -140,8 +143,8 @@ export function contextBlock(ctx: CoachContext): string {
   return `THE PERSON YOU ARE COACHING
 Name: ${profile.name}
 Local time now: ${ctx.localTime} on ${ctx.today} (${user.timezone})
-Life area: ${area}
-Tone for this area: ${AREA_TONE[profile.areaId]}
+Life areas: ${area}
+Tone for the main focus: ${AREA_TONE[profile.areaId]}${areaIds.length > 1 ? `\nAlso weave in the other areas across the week — a question about each every few days. Tones: ${areaIds.slice(1).map((a) => `${AREA_NAMES[a]}: ${AREA_TONE[a]}`).join(' | ')}` : ''}
 Their goal: ${profile.plan.statement}${profile.plan.targetDate ? `\nTarget date: ${profile.plan.targetDate}` : ''}
 Streak: ${ctx.streak} day${ctx.streak === 1 ? '' : 's'} of check-ins
 ${health}

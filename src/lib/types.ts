@@ -76,7 +76,10 @@ export interface ChatMessage {
 export interface UserProfile {
   name: string
   dob: string
+  /** Main focus — drives the plan, tone and health extras */
   areaId: GoalAreaId
+  /** All chosen life areas, main focus first. Older profiles only have areaId. */
+  areaIds?: GoalAreaId[]
   coachId: string
   accent: VoiceAccent
   voiceEnabled: boolean

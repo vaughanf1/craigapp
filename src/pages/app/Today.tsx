@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { currentStreak, todayKey, uid, useStore } from '../../lib/store'
 import { getCoach } from '../../data/coaches'
-import { getArea } from '../../data/goalAreas'
+import { areaForToday, getArea, profileAreas } from '../../data/goalAreas'
 import {
   dailyMotivation,
   dailyQuestion,
@@ -40,6 +40,8 @@ export default function Today() {
   const profile = state.profile!
   const coach = getCoach(profile.coachId)
   const area = getArea(profile.areaId)
+  const areas = profileAreas(profile)
+  const questionArea = areaForToday(profile)
 
   const today = todayKey()
   const todaysCheckIn = state.checkIns.find((c) => c.date === today)
@@ -121,6 +123,7 @@ export default function Today() {
         <div className={`rounded-3xl bg-gradient-to-br ${area.gradient} p-5 text-white shadow-card`}>
           <p className="text-xs font-semibold uppercase tracking-wider opacity-80">
             {area.icon} {area.name}
+            {areas.length > 1 && <span className="font-normal normal-case tracking-normal opacity-80"> · +{areas.length - 1} more</span>}
           </p>
           <p className="mt-1.5 text-lg font-medium leading-snug">{profile.plan.statement}</p>
         </div>
@@ -144,7 +147,7 @@ export default function Today() {
                 </div>
               ) : (
                 <div>
-                  <p className="mt-1 leading-relaxed">{dailyQuestion(profile.areaId)}</p>
+                  <p className="mt-1 leading-relaxed">{dailyQuestion(questionArea)}</p>
                   <textarea
                     value={note}
                     onChange={(e) => setNote(e.target.value)}

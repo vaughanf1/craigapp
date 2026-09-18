@@ -46,3 +46,15 @@ describe('progress against the plan', () => {
     expect(behind.daysLeft).toBe(19)
   })
 })
+
+describe('several life areas', () => {
+  it('draws daily actions from every area, main focus first', () => {
+    const r = buildLocalRoadmap({ statement: 'Quit smoking and get my weekends back', targetDate: '2027-01-14', areaId: 'habits', areaIds: ['habits', 'lifestyle', 'family'], today: '2026-09-18' })
+    expect(r.dailyActions.map((a) => a.text)).toEqual([
+      'Notice the urge, wait ten minutes',
+      'Log every slip honestly',
+      'One thing purely for enjoyment',
+      'One undistracted conversation',
+    ])
+  })
+})

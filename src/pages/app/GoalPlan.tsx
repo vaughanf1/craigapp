@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useStore } from '../../lib/store'
-import { getArea } from '../../data/goalAreas'
+import { getArea, profileAreas } from '../../data/goalAreas'
 import { getCoach } from '../../data/coaches'
 import { api, type PlanReview } from '../../lib/api'
 import { Card, Rise } from '../../components/ui'
@@ -11,6 +11,7 @@ export default function GoalPlan() {
   const { state, online, setRoadmap } = useStore()
   const profile = state.profile!
   const area = getArea(profile.areaId)
+  const areas = profileAreas(profile)
   const coach = getCoach(profile.coachId)
   const roadmap = profile.plan.roadmap
   const [rebuilding, setRebuilding] = useState(false)
@@ -69,6 +70,15 @@ export default function GoalPlan() {
             {area.icon} {area.name}
           </p>
           <p className="mt-2 text-xl font-semibold leading-snug">{profile.plan.statement}</p>
+          {areas.length > 1 && (
+            <p className="mt-2 flex flex-wrap gap-1.5">
+              {areas.slice(1).map((a) => (
+                <span key={a.id} className="rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-medium">
+                  {a.icon} {a.name}
+                </span>
+              ))}
+            </p>
+          )}
           {profile.plan.targetDate && (
             <p className="mt-3 text-sm opacity-90">
               🎯 Target:{' '}

@@ -1,6 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { useStore } from '../../lib/store'
 import { getCoach } from '../../data/coaches'
+import { GOAL_AREAS } from '../../data/goalAreas'
 import { speak } from '../../lib/coach'
 import { api } from '../../lib/api'
 import { Card, Disclaimer, Rise } from '../../components/ui'
@@ -40,6 +41,35 @@ export default function Settings() {
             />
           </div>
           <p className="mt-2 text-sm text-ink-secondary">{coach.bio}</p>
+        </Card>
+      </Rise>
+
+      <Rise delay={0.07}>
+        <Card className="p-5">
+          <h2 className="font-semibold">Life areas</h2>
+          <p className="mt-0.5 text-sm text-ink-secondary">The first is your main focus. Tap to add or remove.</p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {GOAL_AREAS.map((a) => {
+              const ids = profile.areaIds?.length ? profile.areaIds : [profile.areaId]
+              const pos = ids.indexOf(a.id)
+              return (
+                <button
+                  key={a.id}
+                  onClick={() => {
+                    const next = pos === -1 ? [...ids, a.id] : ids.filter((x) => x !== a.id)
+                    if (!next.length) return
+                    updateProfile({ areaIds: next, areaId: next[0] })
+                  }}
+                  aria-pressed={pos !== -1}
+                  className={`rounded-full px-3.5 py-1.5 text-sm font-medium transition-all ${
+                    pos === 0 ? 'bg-accent text-white' : pos > 0 ? 'bg-ink text-white' : 'bg-white shadow-card hairline text-ink-secondary'
+                  }`}
+                >
+                  {a.icon} {a.name}
+                </button>
+              )
+            })}
+          </div>
         </Card>
       </Rise>
 

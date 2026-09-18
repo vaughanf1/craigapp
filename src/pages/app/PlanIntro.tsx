@@ -33,6 +33,7 @@ export default function PlanIntro() {
         statement: profile.plan.statement,
         targetDate: profile.plan.targetDate || todayKey(),
         areaId: profile.areaId,
+        areaIds: profile.areaIds,
         actionPlan: profile.plan.actionPlan,
         obstacles: profile.plan.obstacles,
         weightKg: profile.weightKg,

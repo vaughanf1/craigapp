@@ -1,4 +1,4 @@
-import type { GoalArea } from '../lib/types'
+import type { GoalArea, GoalAreaId } from '../lib/types'
 
 export const GOAL_AREAS: GoalArea[] = [
   {
@@ -85,4 +85,17 @@ export const GOAL_AREAS: GoalArea[] = [
 
 export function getArea(id: string): GoalArea {
   return GOAL_AREAS.find((a) => a.id === id) ?? GOAL_AREAS[0]
+}
+
+/** All of a profile's life areas, main focus first (older profiles only have areaId) */
+export function profileAreas(profile: { areaId: GoalAreaId; areaIds?: GoalAreaId[] }): GoalArea[] {
+  const ids = profile.areaIds?.length ? profile.areaIds : [profile.areaId]
+  return ids.map(getArea)
+}
+
+/** Rotate the day's question area across everything they chose */
+export function areaForToday(profile: { areaId: GoalAreaId; areaIds?: GoalAreaId[] }, date = new Date()): GoalAreaId {
+  const ids = profile.areaIds?.length ? profile.areaIds : [profile.areaId]
+  const dayIndex = Math.floor(date.getTime() / 86400_000)
+  return ids[dayIndex % ids.length]
 }

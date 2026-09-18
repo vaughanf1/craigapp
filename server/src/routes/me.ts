@@ -42,6 +42,7 @@ const Profile = z.object({
   name: z.string().min(1).max(60),
   dob: z.string(),
   areaId: z.enum(['health', 'wealth', 'career', 'family', 'personal', 'spirituality', 'lifestyle', 'community', 'habits', 'legacy']),
+  areaIds: z.array(z.enum(['health', 'wealth', 'career', 'family', 'personal', 'spirituality', 'lifestyle', 'community', 'habits', 'legacy'])).max(10).optional(),
   coachId: z.string(),
   accent: z.enum(['british', 'american']),
   voiceEnabled: z.boolean(),

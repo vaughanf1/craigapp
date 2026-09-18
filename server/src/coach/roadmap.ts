@@ -34,6 +34,7 @@ export async function generateRoadmap(user: repo.User): Promise<Roadmap> {
     statement: p.plan.statement,
     targetDate: p.plan.targetDate || today,
     areaId: p.areaId,
+    areaIds: p.areaIds,
     actionPlan: p.plan.actionPlan,
     obstacles: p.plan.obstacles,
     weightKg: p.weightKg,
@@ -55,7 +56,8 @@ export async function generateRoadmap(user: repo.User): Promise<Roadmap> {
           type: 'text',
           text: `Build ${p.name}'s plan by working backwards from the goal. Today is ${today}. By the inch it's a cinch: the first stop must feel close. Every milestone needs a date; measurable goals need a number at each stop. Obstacles get reduced, not banned.
 
-Life area: ${AREA_NAMES[p.areaId]}
+Life areas: ${(p.areaIds?.length ? p.areaIds : [p.areaId]).map((a, i) => `${AREA_NAMES[a]}${i === 0 ? ' (main focus — the plan is about this)' : ''}`).join(', ')}
+${(p.areaIds?.length ?? 0) > 1 ? 'Daily actions: mostly the main focus, but include one small action for each other area so the whole life moves.' : ''}
 Goal: ${p.plan.statement}
 Target date: ${input.targetDate}
 ${p.weightKg ? `Current weight: ${formatWeight(p.weightKg, unit)} (${p.weightKg} kg)` : ''}

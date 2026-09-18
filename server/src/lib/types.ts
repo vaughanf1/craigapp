@@ -60,6 +60,7 @@ export interface UserProfile {
   name: string
   dob: string
   areaId: GoalAreaId
+  areaIds?: GoalAreaId[]
   coachId: string
   accent: 'british' | 'american'
   voiceEnabled: boolean
