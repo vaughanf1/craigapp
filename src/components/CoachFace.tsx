@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import type { Coach } from '../lib/types'
 import { useCoachIntro } from './CoachIntro'
+import { usePhonePortrait } from '../lib/useViewport'
 
 const SIZES = {
   sm: 'h-10 w-10',
@@ -66,6 +67,7 @@ export function CoachFace({
         preload="metadata"
         aria-label={`${coach.name}, your coach`}
         className={`relative h-full w-full rounded-full object-cover shadow-card bg-gradient-to-br ${coach.gradient}`}
+        style={{ objectPosition: '50% 28%' }}
         onLoadedMetadata={(e) => {
           if (!playing) e.currentTarget.currentTime = 0.3
         }}
@@ -89,6 +91,7 @@ export function CoachVideo({
   className?: string
 }) {
   const ref = useRef<HTMLVideoElement>(null)
+  const phone = usePhonePortrait()
   useEffect(() => {
     const v = ref.current
     if (!v) return
@@ -107,7 +110,8 @@ export function CoachVideo({
       playsInline
       preload="auto"
       onEnded={onEnded}
-      className={`h-full w-full object-cover ${className}`}
+      style={{ objectPosition: '50% 30%' }}
+      className={`h-full w-full ${phone ? 'object-cover' : 'object-contain'} ${className}`}
     />
   )
 }

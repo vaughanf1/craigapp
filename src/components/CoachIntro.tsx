@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useRef, useState, type ReactNode } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import type { Coach } from '../lib/types'
+import { usePhonePortrait } from '../lib/useViewport'
 
 /**
  * Tap any coach and they introduce themselves — full screen, with sound.
@@ -23,6 +24,7 @@ export function CoachIntroProvider({ children }: { children: ReactNode }) {
   const [coach, setCoach] = useState<Coach | null>(null)
   const [choose, setChoose] = useState<{ onChoose?: () => void; chooseLabel?: string }>({})
   const [ended, setEnded] = useState(false)
+  const phone = usePhonePortrait()
 
   const openIntro = useCallback<IntroApi['openIntro']>((c, opts = {}) => {
     const v = video.current
@@ -64,13 +66,20 @@ export function CoachIntroProvider({ children }: { children: ReactNode }) {
         role="dialog"
         aria-label={coach ? `${coach.name} introduces themselves` : undefined}
       >
+        {/* Wide screens: the coach's blurred clip fills the gaps instead of cropping their face */}
+        {!phone && coach && (
+          <div
+            className="absolute inset-0 scale-110 bg-cover bg-center opacity-40 blur-3xl"
+            style={{ backgroundImage: `linear-gradient(135deg, #5e5ce6, #0a84ff)` }}
+          />
+        )}
         <video
           ref={video}
           playsInline
           preload="none"
           onEnded={() => setEnded(true)}
           onClick={() => (ended ? replay() : video.current?.paused ? video.current.play() : video.current?.pause())}
-          className="h-full w-full object-cover"
+          className={`relative h-full w-full ${phone ? 'object-cover' : 'object-contain'}`}
         />
         <AnimatePresence>
           {coach && (
@@ -90,13 +99,13 @@ export function CoachIntroProvider({ children }: { children: ReactNode }) {
                   ✕
                 </button>
               </div>
-              <div className="bg-gradient-to-t from-black/85 via-black/40 to-transparent px-6 pb-[max(2rem,env(safe-area-inset-bottom))] pt-24 text-white">
+              <div className={`bg-gradient-to-t from-black/85 via-black/40 to-transparent px-6 pb-[max(2rem,env(safe-area-inset-bottom))] pt-24 text-white ${phone ? '' : 'flex flex-col items-center text-center'}`}>
                 <p className="text-3xl font-semibold tracking-tight">{coach.name}</p>
                 <p className="text-white/70">
                   {coach.ageBand} · {coach.style}
                 </p>
                 <p className="mt-2 max-w-md text-[15px] leading-relaxed text-white/85">{coach.bio}</p>
-                <div className="pointer-events-auto mt-5 flex flex-wrap gap-2">
+                <div className={`pointer-events-auto mt-5 flex flex-wrap gap-2 ${phone ? '' : 'justify-center'}`}>
                   {choose.onChoose && (
                     <button
                       onClick={() => {
