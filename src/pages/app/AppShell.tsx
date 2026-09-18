@@ -4,6 +4,7 @@ import { useStore } from '../../lib/store'
 const TABS = [
   { to: '/app', label: 'Today', icon: '☀️', end: true },
   { to: '/app/coach', label: 'Coach', icon: '💬', end: false },
+  { to: '/app/memory', label: 'Memory', icon: '🧠', end: false },
   { to: '/app/goal', label: 'Goal', icon: '🎯', end: false },
   { to: '/app/settings', label: 'Settings', icon: '⚙️', end: false },
 ]
@@ -25,7 +26,7 @@ export default function AppShell() {
               to={t.to}
               end={t.end}
               className={({ isActive }) =>
-                `flex flex-col items-center gap-0.5 rounded-2xl px-5 py-1.5 text-[11px] font-medium transition-colors ${
+                `flex flex-col items-center gap-0.5 rounded-2xl px-3.5 py-1.5 text-[11px] font-medium transition-colors ${
                   isActive ? 'text-accent' : 'text-ink-secondary hover:text-ink'
                 }`
               }

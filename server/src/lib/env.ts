@@ -1,0 +1,43 @@
+/**
+ * All configuration comes from the environment. Anything optional degrades
+ * gracefully: no Twilio → codes are logged and calls are simulated; no VAPID
+ * keys → push is disabled; no Anthropic key → the SDK's own credential chain.
+ */
+const e = process.env
+
+export const env = {
+  port: Number(e.PORT ?? 8787),
+  dbPath: e.DB_PATH ?? './data/bemore.sqlite',
+  /** Public URL of this server — Twilio needs it for webhooks */
+  publicUrl: (e.PUBLIC_URL ?? `http://localhost:${e.PORT ?? 8787}`).replace(/\/$/, ''),
+  /** Public URL of the web app — used in push payloads and CORS */
+  appUrl: (e.APP_URL ?? 'http://localhost:5173').replace(/\/$/, ''),
+  sessionSecret: e.SESSION_SECRET ?? 'dev-secret-change-me',
+  /** Fixed OTP accepted in development when Twilio Verify is not configured */
+  devOtp: e.DEV_OTP ?? '123456',
+
+  twilio: {
+    accountSid: e.TWILIO_ACCOUNT_SID ?? '',
+    authToken: e.TWILIO_AUTH_TOKEN ?? '',
+    verifySid: e.TWILIO_VERIFY_SID ?? '',
+    fromNumber: e.TWILIO_FROM_NUMBER ?? '',
+    get enabled() {
+      return Boolean(this.accountSid && this.authToken)
+    },
+  },
+
+  vapid: {
+    publicKey: e.VAPID_PUBLIC_KEY ?? '',
+    privateKey: e.VAPID_PRIVATE_KEY ?? '',
+    subject: e.VAPID_SUBJECT ?? 'mailto:hello@bemore.app',
+    get enabled() {
+      return Boolean(this.publicKey && this.privateKey)
+    },
+  },
+
+  isProd: e.NODE_ENV === 'production',
+}
+
+if (env.isProd && env.sessionSecret === 'dev-secret-change-me') {
+  throw new Error('SESSION_SECRET must be set in production')
+}

@@ -2,10 +2,13 @@ import { useMemo, useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { GOAL_AREAS } from '../data/goalAreas'
-import { COACHES, getCoach } from '../data/coaches'
+import { getCoach } from '../data/coaches'
 import { useStore } from '../lib/store'
 import { speak } from '../lib/coach'
 import { suggestedCalorieTarget } from '../lib/health'
+import { api } from '../lib/api'
+import { formatWeight, halfwayKg } from '../lib/units'
+import CoachPicker from '../components/CoachPicker'
 import type { GoalAreaId, VoiceAccent } from '../lib/types'
 import TagInput from '../components/TagInput'
 import { CoachAvatar, Disclaimer, PrimaryButton, ProgressDots, SecondaryButton } from '../components/ui'
@@ -31,7 +34,7 @@ type Step = (typeof BASE_STEPS)[number] | 'health'
 
 export default function Onboarding() {
   const navigate = useNavigate()
-  const { setProfile } = useStore()
+  const { setProfile, state } = useStore()
 
   const [step, setStep] = useState(0)
   const [name, setName] = useState('')
@@ -52,6 +55,7 @@ export default function Onboarding() {
   const [heightCm, setHeightCm] = useState('')
   const [weightKg, setWeightKg] = useState('')
   const [goalWeightKg, setGoalWeightKg] = useState('')
+  const [weightUnit, setWeightUnit] = useState<'stone' | 'lbs' | 'kg'>('stone')
 
   const area = useMemo(() => GOAL_AREAS.find((a) => a.id === areaId), [areaId])
   const coach = coachId ? getCoach(coachId) : null
@@ -65,14 +69,27 @@ export default function Onboarding() {
     [areaId],
   )
 
+  // Craig: "here it's stone and pounds, in America it's pounds" — people type in their own units
+  const toKg = (v: string) => {
+    if (!v) return undefined
+    if (weightUnit === 'kg') return Number(v) || undefined
+    if (weightUnit === 'lbs') return Number(v) / 2.20462 || undefined
+    const [st, lb = '0'] = v.split(/[\s.]+/)
+    const kg = (Number(st) * 14 + Number(lb)) / 2.20462
+    return kg || undefined
+  }
   const metrics = {
     sex,
     dob,
     heightCm: Number(heightCm) || undefined,
-    weightKg: Number(weightKg) || undefined,
-    goalWeightKg: Number(goalWeightKg) || undefined,
+    weightKg: toKg(weightKg),
+    goalWeightKg: toKg(goalWeightKg),
   }
   const calorieTarget = suggestedCalorieTarget(metrics)
+  const milestone =
+    metrics.weightKg && metrics.goalWeightKg && metrics.goalWeightKg < metrics.weightKg
+      ? formatWeight(halfwayKg(metrics.weightKg, metrics.goalWeightKg), weightUnit)
+      : null
 
   const canNext = (() => {
     switch (steps[step]) {
@@ -103,7 +120,7 @@ export default function Onboarding() {
       accent,
       voiceEnabled: true,
       checkInsPerDay,
-      plan: { statement: statement.trim(), benefits, supporters, obstacles, skills, actionPlan, targetDate },
+      plan: { statement: statement.trim(), benefits, supporters, obstacles, skills, actionPlan, targetDate, milestone: milestone ?? undefined },
       createdAt: Date.now(),
       ...(areaId === 'health'
         ? {
@@ -112,10 +129,12 @@ export default function Onboarding() {
             weightKg: metrics.weightKg,
             goalWeightKg: metrics.goalWeightKg,
             calorieTarget: calorieTarget ?? undefined,
+            weightUnit,
           }
         : {}),
     })
-    navigate('/app')
+    // With a server, the coach needs your number to ring you
+    navigate(api.connected && !state.session ? '/signin' : '/app')
   }
 
   const next = () => {
@@ -338,17 +357,37 @@ export default function Onboarding() {
                       ))}
                     </div>
                   </div>
+                  <div>
+                    <span className="mb-1.5 block text-sm font-medium text-ink-secondary">Weight in</span>
+                    <div className="flex gap-1 rounded-full bg-black/[0.05] p-1 w-fit">
+                      {([['stone', 'Stone & lbs'], ['lbs', 'Pounds'], ['kg', 'Kilos']] as const).map(([u, label]) => (
+                        <button
+                          key={u}
+                          onClick={() => {
+                            setWeightUnit(u)
+                            setWeightKg('')
+                            setGoalWeightKg('')
+                          }}
+                          className={`rounded-full px-3.5 py-1.5 text-sm font-medium transition-all ${
+                            weightUnit === u ? 'bg-white shadow-card' : 'text-ink-secondary'
+                          }`}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                   <div className="grid grid-cols-3 gap-3">
                     {([
                       ['Height (cm)', heightCm, setHeightCm, '175'],
-                      ['Weight (kg)', weightKg, setWeightKg, '85'],
-                      ['Goal (kg)', goalWeightKg, setGoalWeightKg, '78'],
+                      [weightUnit === 'stone' ? 'Weight (st lb)' : `Weight (${weightUnit})`, weightKg, setWeightKg, weightUnit === 'stone' ? '13 2' : weightUnit === 'lbs' ? '184' : '84'],
+                      [weightUnit === 'stone' ? 'Goal (st lb)' : `Goal (${weightUnit})`, goalWeightKg, setGoalWeightKg, weightUnit === 'stone' ? '11 0' : weightUnit === 'lbs' ? '154' : '70'],
                     ] as const).map(([labelText, value, setter, ph]) => (
                       <label key={labelText} className="block">
                         <span className="mb-1.5 block text-sm font-medium text-ink-secondary">{labelText}</span>
                         <input
                           value={value}
-                          onChange={(e) => setter(e.target.value.replace(/[^\d.]/g, ''))}
+                          onChange={(e) => setter(e.target.value.replace(/[^\d. ]/g, ''))}
                           placeholder={ph}
                           inputMode="decimal"
                           className="w-full rounded-2xl bg-white px-4 py-3.5 text-[17px] shadow-card outline-none ring-accent/50 transition-shadow focus:ring-2"
@@ -356,6 +395,12 @@ export default function Onboarding() {
                       </label>
                     ))}
                   </div>
+                  {milestone && (
+                    <div className="rounded-2xl bg-leaf/10 p-4 text-sm leading-relaxed text-ink">
+                      <strong>By the inch it's a cinch.</strong> Let's not stare at the whole {formatWeight(metrics.weightKg! - metrics.goalWeightKg!, weightUnit)}.
+                      First stop: <strong>{milestone}</strong> — then we review.
+                    </div>
+                  )}
                   {calorieTarget && (
                     <div className="rounded-2xl bg-accent/10 p-4 text-sm leading-relaxed text-accent">
                       Suggested daily target: <strong>{calorieTarget} kcal</strong>
@@ -377,31 +422,9 @@ export default function Onboarding() {
                   Your gym buddy for life. Encouraging rather than forgiving — uplifting but
                   realistic.
                 </p>
-                <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
-                  {COACHES.map((c) => (
-                    <button
-                      key={c.id}
-                      onClick={() => setCoachId(c.id)}
-                      className={`flex flex-col items-center rounded-3xl bg-white p-4 text-center transition-all ${
-                        coachId === c.id ? 'shadow-float ring-2 ring-accent' : 'shadow-card hairline hover:shadow-float'
-                      }`}
-                    >
-                      <CoachAvatar coach={c} size="md" />
-                      <p className="mt-2 text-sm font-semibold">{c.name}</p>
-                      <p className="text-xs text-ink-secondary">{c.ageBand} · {c.style}</p>
-                    </button>
-                  ))}
+                <div className="mt-8">
+                  <CoachPicker value={coachId} onChange={setCoachId} />
                 </div>
-                {coach && (
-                  <motion.p
-                    key={coach.id}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="mt-5 rounded-2xl bg-white p-4 text-sm leading-relaxed text-ink-secondary shadow-card hairline"
-                  >
-                    {coach.bio}
-                  </motion.p>
-                )}
               </section>
             )}
 

@@ -6,6 +6,18 @@ towards whatever goal you're chasing.
 
 > "You can change who you are, and where you are, by changing what goes into your mind." — Zig Ziglar
 
+## What makes it different
+
+1. **Your coach rings you.** A scheduler on the server generates a personalised brief at your chosen times
+   (morning: yesterday in real numbers + today's focus; evening: executive summary + tomorrow) and delivers it
+   as a push notification that opens a full-screen **video call** in the app, or as a **real phone call** via
+   Twilio with a speech loop — you talk back and the coach answers.
+2. **It remembers.** Every chat, call and check-in is mined by Claude for durable facts about you (`memories`)
+   and a per-day summary. Both feed the next conversation. There's a Memory page to see and prune what your
+   coach knows.
+3. **Real coaches, not emoji.** Eight video avatars (woman/man × 20s–50s), filterable in the picker, each with
+   an intro clip. The call screen puts them on camera.
+
 ## Features
 
 - **One-page shopfront** — Apple-style marketing landing page selling the app
@@ -25,14 +37,45 @@ towards whatever goal you're chasing.
   e.g. 20 min treadmill ≈ 300 kcal burned) against a daily target
 - **Check-in frequency** — choose 1–5 coach check-ins per day in Settings
 
-Everything persists locally in the browser (localStorage) — no account needed for the MVP.
+Runs in two modes: **local-only** (no server; everything in localStorage, no calls/memory) and **connected**
+(`VITE_API_URL` set; sign in by phone, the server holds state and rings you).
+
+## Server (`server/`)
+
+Node 22 + Hono + SQLite (`node:sqlite`, no native deps) + the Anthropic SDK. No build step — Node runs the
+TypeScript directly.
+
+```bash
+cd server && npm install
+cp .env.example .env          # add ANTHROPIC_API_KEY; the rest is optional
+npm run vapid                 # generates VAPID keys for push — paste into .env
+npm run dev                   # http://localhost:8787
+```
+
+Back in the root: `VITE_API_URL=http://localhost:8787 npm run dev`. Sign in with any number; the dev OTP
+is `123456` until Twilio Verify is configured.
+
+| Env | Purpose |
+|---|---|
+| `ANTHROPIC_API_KEY` | Coach brain (`claude-opus-5`, falls back to Opus 4.8 on a safety decline) |
+| `VAPID_*` | Web Push — notification calls |
+| `TWILIO_ACCOUNT_SID/AUTH_TOKEN/FROM_NUMBER` | Real phone calls (simulated + logged when unset) |
+| `TWILIO_VERIFY_SID` | SMS sign-in codes (dev OTP when unset) |
+| `PUBLIC_URL` / `APP_URL` | Webhook base for Twilio / CORS + push deep links |
+
+Endpoints: `/auth/*` (phone OTP), `/me/*` (profile, check-ins, food, schedule, export, delete),
+`/coach/message`, `/coach/call-now`, `/coach/deliveries/*`, `/coach/memory/*`, `/push/*`, `/twilio/*`.
+The scheduler ticks every minute and is idempotent per (user, local date, slot).
+
+Deploy: `server/Dockerfile` + `fly.toml` (persistent volume for SQLite; machine never auto-stops so the
+scheduler keeps ringing people). Set the `API_URL` repo variable so the Pages build points at it.
 
 ## Production
 
 - **PWA**: installable to the home screen (manifest + service worker), works offline after first visit
 - **Privacy by architecture**: all data stays on-device; export or erase it any time from Settings
 - **Legal**: `/privacy` and `/terms` pages with the required disclaimers
-- **Quality gates**: `npm test` (22 tests covering the coach engine, streak logic and the content
+- **Quality gates**: `npm test` + `npm run test:server` (88 tests across the app and API covering the coach engine, streak logic and the content
   spec — 20 questions/statements per area, 40 sayings, 20 understanding responses) and `npm run lint`
   both run in CI before every deploy
 - **Deploys**: every push to the main branch runs tests, builds with `--base=/craigapp/` and

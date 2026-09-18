@@ -21,16 +21,7 @@ export interface GoalArea {
 
 export type VoiceAccent = 'british' | 'american'
 
-export interface Coach {
-  id: string
-  name: string
-  gender: 'male' | 'female'
-  ageBand: '20s' | '30s' | '40s' | '50s'
-  style: string
-  emoji: string
-  gradient: string
-  bio: string
-}
+export type { Coach, CoachGender, CoachAgeBand } from '../../shared/coaches.ts'
 
 /** Craig's 7-step goal framework */
 export interface GoalPlan {
@@ -41,6 +32,8 @@ export interface GoalPlan {
   skills: string[]
   actionPlan: string
   targetDate: string
+  /** Halfway milestone — "by the inch it's a cinch" */
+  milestone?: string
 }
 
 export interface FoodEntry {
@@ -81,9 +74,18 @@ export interface UserProfile {
   weightKg?: number
   goalWeightKg?: number
   calorieTarget?: number
+  /** Preferred weight units in conversation — stone/lbs (UK), lbs (US) or kg */
+  weightUnit?: 'stone' | 'lbs' | 'kg'
   /* AI conversations (bring-your-own-key) */
   aiEnabled?: boolean
   aiApiKey?: string
+}
+
+export interface Session {
+  phone: string
+  userId: string
+  timezone: string
+  memoryCount: number
 }
 
 export interface AppState {
@@ -91,4 +93,6 @@ export interface AppState {
   checkIns: CheckInRecord[]
   foodLog: FoodEntry[]
   chat: ChatMessage[]
+  /** Present when signed in to a Be More server */
+  session: Session | null
 }

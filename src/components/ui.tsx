@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion'
 import type { ButtonHTMLAttributes, ReactNode } from 'react'
 import type { Coach } from '../lib/types'
+import { CoachFace } from './CoachFace'
 
 export function PrimaryButton({
   children,
@@ -60,6 +61,7 @@ export function Rise({
   )
 }
 
+/** Kept for callers that only need a small portrait — now the real coach, not an emoji */
 export function CoachAvatar({
   coach,
   size = 'md',
@@ -69,19 +71,7 @@ export function CoachAvatar({
   size?: 'sm' | 'md' | 'lg' | 'xl'
   className?: string
 }) {
-  const sizes = {
-    sm: 'h-10 w-10 text-xl',
-    md: 'h-14 w-14 text-3xl',
-    lg: 'h-20 w-20 text-4xl',
-    xl: 'h-28 w-28 text-6xl',
-  }
-  return (
-    <div
-      className={`flex items-center justify-center rounded-full bg-gradient-to-br ${coach.gradient} ${sizes[size]} shadow-card ${className}`}
-    >
-      <span className="drop-shadow-sm">{coach.emoji}</span>
-    </div>
-  )
+  return <CoachFace coach={coach} size={size} className={className} />
 }
 
 export function ProgressDots({ total, current }: { total: number; current: number }) {

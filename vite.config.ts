@@ -19,6 +19,14 @@ export default defineConfig(({ mode }) => ({
       : [
           VitePWA({
             registerType: 'autoUpdate',
+            strategies: 'injectManifest',
+            srcDir: 'src',
+            filename: 'sw.ts',
+            injectManifest: {
+              // Coach clips are fetched on demand, not precached
+              globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
+              maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
+            },
             includeAssets: ['bemore.svg', 'icon-180.png'],
             manifest: {
               name: 'Be More — Your Personal AI Coach',

@@ -1,9 +1,10 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react'
 import type { AppState, CheckInRecord, ChatMessage, FoodEntry, UserProfile } from './types'
+import { api, mirror, type MeResponse } from './api'
 
 const STORAGE_KEY = 'bemore-state-v1'
 
-const EMPTY: AppState = { profile: null, checkIns: [], foodLog: [], chat: [] }
+const EMPTY: AppState = { profile: null, checkIns: [], foodLog: [], chat: [], session: null }
 
 function load(): AppState {
   try {
@@ -24,6 +25,11 @@ interface Store {
   removeFood: (id: string) => void
   addChat: (m: ChatMessage) => void
   reset: () => void
+  /** Whether this build talks to a Be More server and the user is signed in */
+  online: boolean
+  /** Replace local state with what the server holds (after sign-in) */
+  hydrate: (me: MeResponse) => void
+  signOut: () => void
 }
 
 const StoreContext = createContext<Store | null>(null)
@@ -39,17 +45,60 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }
   }, [state])
 
+  const online = api.connected && Boolean(state.session)
+
+  const hydrate = useCallback((me: MeResponse) => {
+    setState((s) => ({
+      profile: me.user.profile ?? s.profile,
+      checkIns: me.checkIns,
+      foodLog: me.foodLog,
+      chat: me.chat.map((m) => ({ id: m.id, from: m.from, text: m.text, timestamp: m.timestamp })),
+      session: { phone: me.user.phone, userId: me.user.id, timezone: me.user.timezone, memoryCount: me.memoryCount },
+    }))
+  }, [])
+
+  // Re-hydrate on launch when a session token exists (e.g. opened from a push notification)
+  useEffect(() => {
+    if (!api.connected || !api.hasToken()) return
+    api.me().then(hydrate).catch(() => setState((s) => ({ ...s, session: null })))
+  }, [hydrate])
+
   const store: Store = {
     state,
-    setProfile: (profile) => setState((s) => ({ ...s, profile })),
+    online,
+    hydrate,
+    signOut: () => {
+      api.auth.logout()
+      setState((s) => ({ ...s, session: null }))
+    },
+    setProfile: (profile) => {
+      setState((s) => ({ ...s, profile }))
+      mirror(() => api.saveProfile(profile))
+    },
     updateProfile: (patch) =>
-      setState((s) => (s.profile ? { ...s, profile: { ...s.profile, ...patch } } : s)),
-    addCheckIn: (r) =>
-      setState((s) => ({ ...s, checkIns: [...s.checkIns.filter((c) => c.date !== r.date), r] })),
-    addFood: (f) => setState((s) => ({ ...s, foodLog: [...s.foodLog, f] })),
-    removeFood: (id) => setState((s) => ({ ...s, foodLog: s.foodLog.filter((f) => f.id !== id) })),
+      setState((s) => {
+        if (!s.profile) return s
+        const profile = { ...s.profile, ...patch }
+        mirror(() => api.saveProfile(profile))
+        return { ...s, profile }
+      }),
+    addCheckIn: (r) => {
+      setState((s) => ({ ...s, checkIns: [...s.checkIns.filter((c) => c.date !== r.date), r] }))
+      mirror(() => api.checkIn(r))
+    },
+    addFood: (f) => {
+      setState((s) => ({ ...s, foodLog: [...s.foodLog, f] }))
+      mirror(() => api.addFood(f))
+    },
+    removeFood: (id) => {
+      setState((s) => ({ ...s, foodLog: s.foodLog.filter((f) => f.id !== id) }))
+      mirror(() => api.removeFood(id))
+    },
     addChat: (m) => setState((s) => ({ ...s, chat: [...s.chat.slice(-199), m] })),
-    reset: () => setState(EMPTY),
+    reset: () => {
+      api.signOut()
+      setState(EMPTY)
+    },
   }
 
   return <StoreContext.Provider value={store}>{children}</StoreContext.Provider>

@@ -24,6 +24,9 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm test
+      - run: npm --prefix server ci
+      - run: npm run typecheck:server
+      - run: npm run test:server
 
   build-deploy:
     needs: test
@@ -35,7 +38,10 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      # Set the API_URL repository variable to point the app at a deployed server
       - run: npm run build -- --base=/craigapp/
+        env:
+          VITE_API_URL: ${{ vars.API_URL }}
       # SPA fallback so deep links like /craigapp/app resolve to the router
       - run: cp dist/index.html dist/404.html
       # Publishing to a gh-pages branch auto-enables Pages on public repos

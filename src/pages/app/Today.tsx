@@ -71,10 +71,27 @@ export default function Today() {
             <h1 className="display-tight text-3xl font-semibold">{greeting(profile.name)}</h1>
             <p className="mt-1 text-ink-secondary">{morningKickoff(profile.areaId)}</p>
           </div>
-          <Link to="/app/coach">
+          <Link to="/app/call" aria-label={`Call ${coach.name}`} className="relative">
             <CoachAvatar coach={coach} size="md" />
+            <span className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-leaf text-[11px] text-white shadow-card">📞</span>
           </Link>
         </div>
+      </Rise>
+
+      {/* The call — the thing no other app does */}
+      <Rise delay={0.03}>
+        <Link to="/app/call" className="flex items-center gap-4 rounded-3xl bg-ink p-4 text-white shadow-card transition-transform active:scale-[0.99]">
+          <CoachAvatar coach={coach} size="sm" />
+          <div className="min-w-0 flex-1">
+            <p className="font-semibold">Talk to {coach.name}</p>
+            <p className="truncate text-sm text-white/70">
+              {state.session
+                ? `Rings you at your check-in times · knows ${state.session.memoryCount} thing${state.session.memoryCount === 1 ? '' : 's'} about you`
+                : 'A coach who actually calls you. Tap to try it.'}
+            </p>
+          </div>
+          <span className="rounded-full bg-leaf px-3.5 py-1.5 text-sm font-semibold">Call</span>
+        </Link>
       </Rise>
 
       {/* Streak + countdown */}

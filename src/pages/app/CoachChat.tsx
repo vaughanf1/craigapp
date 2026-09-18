@@ -4,10 +4,12 @@ import { uid, useStore } from '../../lib/store'
 import { getCoach } from '../../data/coaches'
 import { coachReply, dailyQuestion, greeting, speak, stopSpeaking } from '../../lib/coach'
 import { aiErrorKind, askCoach } from '../../lib/ai'
-import { CoachAvatar } from '../../components/ui'
+import { api } from '../../lib/api'
+import { CoachFace } from '../../components/CoachFace'
+import { Link } from 'react-router-dom'
 
 export default function CoachChat() {
-  const { state, addChat } = useStore()
+  const { state, addChat, online } = useStore()
   const profile = state.profile!
   const coach = getCoach(profile.coachId)
   const [draft, setDraft] = useState('')
@@ -29,7 +31,14 @@ export default function CoachChat() {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [state.chat.length, typing])
 
-  useEffect(() => stopSpeaking, [])
+  // Leaving the chat: let the coach file what it learned
+  useEffect(
+    () => () => {
+      stopSpeaking()
+      if (online) api.coach.refreshMemory().catch(() => {})
+    },
+    [online],
+  )
 
   const deliver = (reply: string) => {
     setTyping(false)
@@ -45,7 +54,12 @@ export default function CoachChat() {
     addChat(userMsg)
     setTyping(true)
 
-    if (profile.aiEnabled && profile.aiApiKey) {
+    if (online) {
+      api.coach
+        .message(text, 'chat')
+        .then((r) => deliver(r.reply))
+        .catch(() => deliver(`(I couldn't reach the server just now, so here's me offline.) ${coachReply(profile, text)}`))
+    } else if (profile.aiEnabled && profile.aiApiKey) {
       askCoach(profile, coach, [...state.chat, userMsg], state.checkIns)
         .then(deliver)
         .catch((error) => {
@@ -66,14 +80,23 @@ export default function CoachChat() {
   return (
     <div className="flex h-[calc(100vh-8.5rem)] flex-col">
       <header className="flex items-center gap-3 pb-4">
-        <CoachAvatar coach={coach} size="md" />
-        <div>
+        <CoachFace coach={coach} size="md" speaking={typing} />
+        <div className="min-w-0 flex-1">
           <h1 className="text-xl font-semibold">{coach.name}</h1>
-          <p className="text-sm text-ink-secondary">
+          <p className="truncate text-sm text-ink-secondary">
             {coach.style} · {profile.accent === 'british' ? '🇬🇧' : '🇺🇸'}{' '}
             {profile.voiceEnabled ? 'voice on' : 'voice off'}
+            {online && ' · remembers you'}
           </p>
         </div>
+        <Link
+          to="/app/call"
+          className="flex h-11 w-11 items-center justify-center rounded-full bg-leaf/15 text-lg text-leaf"
+          aria-label={`Call ${coach.name}`}
+          title={`Call ${coach.name}`}
+        >
+          📞
+        </Link>
       </header>
 
       <div className="no-scrollbar flex-1 space-y-2.5 overflow-y-auto pb-4">

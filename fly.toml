@@ -1,0 +1,20 @@
+# fly launch --copy-config --no-deploy && fly volumes create data --size 1 && fly secrets set ... && fly deploy
+app = "bemore-api"
+primary_region = "lhr"
+
+[build]
+  dockerfile = "server/Dockerfile"
+
+[env]
+  PORT = "8787"
+  DB_PATH = "/data/bemore.sqlite"
+
+[[mounts]]
+  source = "data"
+  destination = "/data"
+
+[http_service]
+  internal_port = 8787
+  force_https = true
+  auto_stop_machines = false   # the scheduler must keep running to make calls
+  min_machines_running = 1

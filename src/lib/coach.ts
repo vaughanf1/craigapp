@@ -133,3 +133,25 @@ export function speak(text: string, accent: VoiceAccent, gender: 'male' | 'femal
 export function stopSpeaking() {
   if (typeof speechSynthesis !== 'undefined') speechSynthesis.cancel()
 }
+
+/** Speak and resolve when finished (or immediately if speech is unavailable) */
+export function speakAsync(text: string, accent: VoiceAccent, gender: 'male' | 'female'): Promise<void> {
+  if (typeof speechSynthesis === 'undefined') return Promise.resolve()
+  return new Promise((resolve) => {
+    speak(text, accent, gender)
+    let done = false
+    const finish = () => {
+      if (done) return
+      done = true
+      clearInterval(poll)
+      clearTimeout(guard)
+      resolve()
+    }
+    const poll = setInterval(() => {
+      if (!speechSynthesis.speaking && !speechSynthesis.pending) finish()
+    }, 150)
+    // Chrome can stall without firing an end event; never hold the call hostage
+    const guard = setTimeout(finish, Math.min(45_000, 1500 + text.length * 75))
+    if (!speechSynthesis.pending && !speechSynthesis.speaking) setTimeout(finish, 300)
+  })
+}

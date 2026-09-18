@@ -1,12 +1,15 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { useStore } from '../../lib/store'
-import { COACHES, getCoach } from '../../data/coaches'
+import { getCoach } from '../../data/coaches'
 import { speak } from '../../lib/coach'
-import { Card, CoachAvatar, Disclaimer, Rise } from '../../components/ui'
+import { api } from '../../lib/api'
+import { Card, Disclaimer, Rise } from '../../components/ui'
+import CoachPicker from '../../components/CoachPicker'
+import CallSettings from '../../components/CallSettings'
 import type { VoiceAccent } from '../../lib/types'
 
 export default function Settings() {
-  const { state, updateProfile, reset } = useStore()
+  const { state, updateProfile, reset, online, signOut } = useStore()
   const navigate = useNavigate()
   const profile = state.profile!
   const coach = getCoach(profile.coachId)
@@ -25,26 +28,23 @@ export default function Settings() {
       <Rise delay={0.05}>
         <Card className="p-5">
           <h2 className="font-semibold">Your coach</h2>
-          <div className="no-scrollbar mt-3 flex gap-3 overflow-x-auto pb-1">
-            {COACHES.map((c) => (
-              <button
-                key={c.id}
-                onClick={() => {
-                  updateProfile({ coachId: c.id })
-                  if (profile.voiceEnabled)
-                    speak(`Hi ${profile.name}, ${c.name} here. Let's do this together.`, profile.accent, c.gender)
-                }}
-                className={`flex shrink-0 flex-col items-center rounded-3xl p-3 transition-all ${
-                  profile.coachId === c.id ? 'bg-accent/10 ring-2 ring-accent' : 'hover:bg-black/[0.03]'
-                }`}
-              >
-                <CoachAvatar coach={c} size="sm" />
-                <p className="mt-1.5 text-xs font-medium">{c.name}</p>
-              </button>
-            ))}
+          <div className="mt-3">
+            <CoachPicker
+              compact
+              value={profile.coachId}
+              onChange={(id) => {
+                updateProfile({ coachId: id })
+                const c = getCoach(id)
+                if (profile.voiceEnabled) speak(`Hi ${profile.name}, ${c.name} here. Let's do this together.`, profile.accent, c.gender)
+              }}
+            />
           </div>
           <p className="mt-2 text-sm text-ink-secondary">{coach.bio}</p>
         </Card>
+      </Rise>
+
+      <Rise delay={0.08}>
+        <CallSettings />
       </Rise>
 
       <Rise delay={0.1}>
@@ -131,7 +131,27 @@ export default function Settings() {
         </Card>
       </Rise>
 
-      {import.meta.env.MODE !== 'artifact' && (
+      {api.connected && (
+        <Rise delay={0.12}>
+          <Card className="p-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-semibold">Account</p>
+                <p className="text-sm text-ink-secondary">
+                  {online ? `Signed in as ${state.session?.phone}` : 'Not signed in — calls and memory are off'}
+                </p>
+              </div>
+              {online ? (
+                <button onClick={signOut} className="rounded-full bg-black/[0.05] px-4 py-2 text-sm font-medium">Sign out</button>
+              ) : (
+                <Link to="/signin" className="rounded-full bg-accent px-4 py-2 text-sm font-medium text-white">Sign in</Link>
+              )}
+            </div>
+          </Card>
+        </Rise>
+      )}
+
+      {import.meta.env.MODE !== 'artifact' && !api.connected && (
         <Rise delay={0.12}>
           <Card className="p-5">
             <div className="flex items-center justify-between">
@@ -181,10 +201,12 @@ export default function Settings() {
       <Rise delay={0.15}>
         <Card className="space-y-3 p-5">
           <button
-            onClick={() => {
-              const exported = state.profile
-                ? { ...state, profile: { ...state.profile, aiApiKey: undefined } }
-                : state
+            onClick={async () => {
+              const exported = online
+                ? await api.exportData().catch(() => state)
+                : state.profile
+                  ? { ...state, profile: { ...state.profile, aiApiKey: undefined } }
+                  : state
               const blob = new Blob([JSON.stringify(exported, null, 2)], { type: 'application/json' })
               const a = document.createElement('a')
               a.href = URL.createObjectURL(blob)
@@ -197,15 +219,19 @@ export default function Settings() {
             Download my data
           </button>
           <button
-            onClick={() => {
-              if (confirm('Start over? This clears your goal, streak and chat history.')) {
+            onClick={async () => {
+              const msg = online
+                ? 'Delete your account? This erases your goal, memory, calls and history from Be More for good.'
+                : 'Start over? This clears your goal, streak and chat history.'
+              if (confirm(msg)) {
+                if (online) await api.deleteAccount().catch(() => {})
                 reset()
                 navigate('/')
               }
             }}
             className="w-full rounded-full bg-coral/10 py-3 font-medium text-coral transition-colors hover:bg-coral/15"
           >
-            Reset & start over
+            {online ? 'Delete account' : 'Reset & start over'}
           </button>
         </Card>
       </Rise>

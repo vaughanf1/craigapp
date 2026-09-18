@@ -18,7 +18,7 @@ const HOW = [
   {
     step: '01',
     title: 'Pick your coach',
-    text: 'Choose from eight AI coaches — male or female, from their 20s to their 50s — with a British or American voice. Like a gym buddy who never misses a session.',
+    text: 'A real face, not a chatbot. Choose who you want in your corner — a woman or a man, from their 20s to their 50s — and meet them on camera before you decide.',
   },
   {
     step: '02',
@@ -27,8 +27,13 @@ const HOW = [
   },
   {
     step: '03',
-    title: 'Check in daily',
-    text: 'Your coach talks to you up to five times a day — asking how it’s going, celebrating streaks, and bringing you back on track after a bad day. Encouraging, uplifting, realistic.',
+    title: 'Your coach rings you',
+    text: 'Every morning: what happened yesterday, in real numbers, and the one thing for today. Every evening: the summary and tomorrow’s focus. A notification that opens a video call — or an actual call to your phone.',
+  },
+  {
+    step: '04',
+    title: 'It remembers',
+    text: 'Every call, chat and check-in builds your coach’s memory of you — the wedding you’re slimming for, the weekend that always derails you. The longer you stay, the better it knows you.',
   },
 ]
 
@@ -161,7 +166,7 @@ export default function Landing() {
               How it works.
             </h2>
           </Rise>
-          <div className="mt-14 grid gap-10 md:grid-cols-3">
+          <div className="mt-14 grid gap-10 md:grid-cols-2 lg:grid-cols-4">
             {HOW.map((h, i) => (
               <Rise key={h.step} delay={i * 0.1}>
                 <p className="bg-gradient-to-r from-indigo to-sky bg-clip-text text-5xl font-bold text-transparent">
