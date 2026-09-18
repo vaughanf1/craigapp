@@ -201,7 +201,7 @@ export default function Call() {
             <div className="flex flex-col items-center text-center">
               <p className="text-sm uppercase tracking-[0.2em] text-white/60">Be More · coach call</p>
               <motion.div animate={{ scale: [1, 1.04, 1] }} transition={{ repeat: Infinity, duration: 1.6 }} className="mt-8">
-                <CoachFace coach={coach} size="hero" playing speaking={stage === 'ringing'} className="ring-4 ring-white/20" />
+                <CoachFace coach={coach} size="hero" playing speaking={stage === 'ringing'} tappable={false} className="ring-4 ring-white/20" />
               </motion.div>
               <h1 className="mt-6 text-4xl font-semibold tracking-tight">{coach.name}</h1>
               <p className="mt-1 text-lg text-white/70">
@@ -296,7 +296,7 @@ export default function Call() {
 
         {stage === 'ended' && (
           <motion.div key="ended" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="relative flex flex-1 flex-col items-center justify-center px-8 text-center">
-            <CoachFace coach={coach} size="xl" />
+            <CoachFace coach={coach} size="xl" tappable={false} />
             <h1 className="mt-6 text-2xl font-semibold">Call ended</h1>
             <p className="mt-2 max-w-xs text-ink-secondary">
               {online

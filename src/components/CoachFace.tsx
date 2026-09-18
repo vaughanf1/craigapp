@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import type { Coach } from '../lib/types'
+import { useCoachIntro } from './CoachIntro'
 
 const SIZES = {
   sm: 'h-10 w-10',
@@ -12,22 +13,26 @@ const SIZES = {
 /**
  * The coach's face: their intro clip, muted, shown as a circular portrait.
  * `playing` makes the clip loop (the coach "on camera"); otherwise the first
- * frame stands in as a photo. `speaking` adds the pulsing ring.
+ * frame stands in as a photo. `speaking` adds the pulsing ring. Tapping it
+ * opens their full-screen introduction with sound (`tappable`, default on).
  */
 export function CoachFace({
   coach,
   size = 'md',
   playing = false,
   speaking = false,
+  tappable = true,
   className = '',
 }: {
   coach: Coach
   size?: keyof typeof SIZES
   playing?: boolean
   speaking?: boolean
+  tappable?: boolean
   className?: string
 }) {
   const ref = useRef<HTMLVideoElement>(null)
+  const { openIntro } = useCoachIntro()
   useEffect(() => {
     const v = ref.current
     if (!v) return
@@ -38,8 +43,14 @@ export function CoachFace({
     }
   }, [playing])
 
+  const Wrapper = tappable ? 'button' : 'div'
   return (
-    <div className={`relative shrink-0 rounded-full ${SIZES[size]} ${className}`}>
+    <Wrapper
+      type={tappable ? 'button' : undefined}
+      onClick={tappable ? () => openIntro(coach) : undefined}
+      aria-label={tappable ? `Meet ${coach.name}` : undefined}
+      className={`relative block shrink-0 rounded-full ${SIZES[size]} ${className}`}
+    >
       {speaking && (
         <>
           <span className="absolute inset-0 animate-ping rounded-full bg-accent/30" />
@@ -59,7 +70,7 @@ export function CoachFace({
           if (!playing) e.currentTarget.currentTime = 0.3
         }}
       />
-    </div>
+    </Wrapper>
   )
 }
 

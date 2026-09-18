@@ -81,7 +81,7 @@ export default function PlanIntro() {
         <AnimatePresence mode="wait">
           {stage === 'building' && (
             <motion.div key="building" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col items-center pt-20 text-center">
-              <CoachFace coach={coach} size="hero" playing speaking />
+              <CoachFace coach={coach} size="hero" playing speaking tappable={false} />
               <h1 className="display-tight mt-8 text-3xl font-semibold">Working backwards…</h1>
               <p className="mt-3 max-w-xs text-ink-secondary">
                 {coach.name} is turning "{profile.plan.statement}" into stops you can see from here.

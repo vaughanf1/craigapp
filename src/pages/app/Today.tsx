@@ -18,6 +18,7 @@ import { COMMON_EXERCISE, COMMON_FOODS } from '../../data/calories'
 import { parseFood } from '../../lib/food'
 import { Card, CoachAvatar, Rise } from '../../components/ui'
 import { DailyActions } from '../../components/Roadmap'
+import { CoachFace } from '../../components/CoachFace'
 import type { FoodEntry } from '../../lib/types'
 
 /* Speech recognition (voice food logging) — vendor-prefixed in most browsers */
@@ -72,17 +73,14 @@ export default function Today() {
             <h1 className="display-tight text-3xl font-semibold">{greeting(profile.name)}</h1>
             <p className="mt-1 text-ink-secondary">{morningKickoff(profile.areaId)}</p>
           </div>
-          <Link to="/app/call" aria-label={`Call ${coach.name}`} className="relative">
-            <CoachAvatar coach={coach} size="md" />
-            <span className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-leaf text-[11px] text-white shadow-card">📞</span>
-          </Link>
+          <CoachAvatar coach={coach} size="md" />
         </div>
       </Rise>
 
       {/* The call — the thing no other app does */}
       <Rise delay={0.03}>
         <Link to="/app/call" className="flex items-center gap-4 rounded-3xl bg-ink p-4 text-white shadow-card transition-transform active:scale-[0.99]">
-          <CoachAvatar coach={coach} size="sm" />
+          <CoachFace coach={coach} size="sm" tappable={false} />
           <div className="min-w-0 flex-1">
             <p className="font-semibold">Talk to {coach.name}</p>
             <p className="truncate text-sm text-white/70">

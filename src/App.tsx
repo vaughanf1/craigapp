@@ -2,6 +2,7 @@ import { Suspense, lazy } from 'react'
 import { BrowserRouter, HashRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { StoreProvider, useStore } from './lib/store'
 import ErrorBoundary from './components/ErrorBoundary'
+import { CoachIntroProvider } from './components/CoachIntro'
 import Landing from './pages/Landing'
 
 const Onboarding = lazy(() => import('./pages/Onboarding'))
@@ -44,6 +45,7 @@ export default function App() {
   return (
     <ErrorBoundary>
       <StoreProvider>
+        <CoachIntroProvider>
         <Router basename={import.meta.env.MODE === 'artifact' ? undefined : import.meta.env.BASE_URL}>
           <Suspense fallback={<Loading />}>
             <Routes>
@@ -66,6 +68,7 @@ export default function App() {
             </Routes>
           </Suspense>
         </Router>
+        </CoachIntroProvider>
       </StoreProvider>
     </ErrorBoundary>
   )

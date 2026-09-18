@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import { COACHES } from '../data/coaches'
 import { CoachFace } from './CoachFace'
+import { useCoachIntro } from './CoachIntro'
 import type { CoachAgeBand, CoachGender } from '../lib/types'
 
 const AGES: CoachAgeBand[] = ['20s', '30s', '40s', '50s']
@@ -21,6 +22,7 @@ export default function CoachPicker({
   compact?: boolean
 }) {
   const current = COACHES.find((c) => c.id === value)
+  const { openIntro } = useCoachIntro()
   const [gender, setGender] = useState<CoachGender | 'any'>(current?.gender ?? 'any')
   const [age, setAge] = useState<CoachAgeBand | 'any'>(current?.ageBand ?? 'any')
   /** Set when the user taps a coach — plays that coach's intro with sound */
@@ -62,12 +64,14 @@ export default function CoachPicker({
               onClick={() => {
                 onChange(c.id)
                 setPreviewing(c.id)
+                // The intro plays full screen with sound, started inside this tap
+                openIntro(c, { onChoose: () => onChange(c.id) })
               }}
               className={`flex flex-col items-center rounded-3xl bg-white p-3 text-center transition-all ${
                 selected ? 'shadow-float ring-2 ring-accent' : 'shadow-card hairline hover:shadow-float'
               }`}
             >
-              <CoachFace coach={c} size={compact ? 'md' : 'lg'} playing={selected || previewing === c.id} />
+              <CoachFace coach={c} size={compact ? 'md' : 'lg'} playing={selected || previewing === c.id} tappable={false} />
               <p className="mt-2 text-sm font-semibold">{c.name}</p>
               {!compact && (
                 <p className="text-xs text-ink-secondary">
@@ -87,51 +91,23 @@ export default function CoachPicker({
           key={current.id}
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mt-5 overflow-hidden rounded-3xl bg-white shadow-card hairline"
+          className="mt-5 flex items-center gap-4 rounded-3xl bg-white p-4 shadow-card hairline"
         >
-          <IntroPlayer coachId={current.id} autoPlay={previewing === current.id} compact={compact} />
-          <div className="p-4">
+          <CoachFace coach={current} size="lg" playing tappable={false} />
+          <div className="min-w-0 flex-1">
             <p className="font-semibold">
               {current.name} <span className="font-normal text-ink-secondary">· {current.ageBand} · {current.style}</span>
             </p>
-            <p className="mt-1 text-sm leading-relaxed text-ink-secondary">{current.bio}</p>
+            {!compact && <p className="mt-1 text-sm leading-relaxed text-ink-secondary">{current.bio}</p>}
+            <button
+              onClick={() => openIntro(current)}
+              className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-ink px-4 py-2 text-sm font-medium text-white"
+            >
+              ▶ Meet {current.name}
+            </button>
           </div>
         </motion.div>
       )}
     </div>
-  )
-}
-
-/** Meet-your-coach clip with sound. Plays immediately after the user taps a coach (a user gesture, so autoplay is allowed). */
-function IntroPlayer({ coachId, autoPlay, compact }: { coachId: string; autoPlay: boolean; compact: boolean }) {
-  const coach = COACHES.find((c) => c.id === coachId)!
-  const [playing, setPlaying] = useState(autoPlay)
-  return (
-    <button
-      onClick={() => setPlaying((p) => !p)}
-      className={`relative block w-full bg-black ${compact ? 'aspect-[4/3] max-h-[300px]' : 'aspect-[4/5] max-h-[420px]'}`}
-      aria-label={playing ? 'Pause intro' : `Play ${coach.name}'s intro`}
-    >
-      <video
-        key={coach.id}
-        src={`${import.meta.env.BASE_URL}${coach.video}`}
-        playsInline
-        preload="metadata"
-        ref={(v) => {
-          if (!v) return
-          if (playing) v.play().catch(() => setPlaying(false))
-          else v.pause()
-        }}
-        onEnded={() => setPlaying(false)}
-        className="h-full w-full object-cover"
-      />
-      {!playing && (
-        <span className="absolute inset-0 flex items-center justify-center">
-          <span className="flex items-center gap-2 rounded-full bg-white/90 px-5 py-2.5 text-sm font-semibold text-ink shadow-float backdrop-blur">
-            ▶ Meet {coach.name}
-          </span>
-        </span>
-      )}
-    </button>
   )
 }
