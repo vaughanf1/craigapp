@@ -7,6 +7,8 @@ import type { ActionLog, WeighIn } from '../lib/types.ts'
 
 export interface CoachContext {
   user: User
+  /** A plan adjustment made overnight that the coach hasn't told them about yet */
+  planUpdate?: { reason: string; coachNote: string; changes: string[] } | null
   profile: UserProfile
   memories: Memory[]
   summaries: DaySummary[]      // oldest → newest, last ~7 days
@@ -55,7 +57,10 @@ export function progressBlock(ctx: CoachContext): string {
     return `- [${a.id}] ${a.text} — ${done}/7 days this week${todayDone ? ', done today' : ''}`
   }).join('\n')
 
-  return `THE PLAN (reverse-engineered from their goal; ${roadmap.source === 'coach' ? 'you built it' : 'a first draft'})
+  const update = ctx.planUpdate
+    ? `\nPLAN UPDATE YOU HAVEN'T TOLD THEM YET (do this early in the call, warmly, in your own words):\n${ctx.planUpdate.coachNote}\nChanges: ${ctx.planUpdate.changes.join('; ')}\n`
+    : ''
+  return `${update}THE PLAN (reverse-engineered from their goal; ${roadmap.source === 'coach' ? 'you built it' : 'a first draft'})
 ${roadmap.summary}
 Stops:
 ${stops}

@@ -77,6 +77,17 @@ export interface Delivery {
   createdAt: number
   answeredAt: number | null
 }
+export interface PlanReview {
+  id: string
+  date: string
+  trigger: 'weekly' | 'behind' | 'manual'
+  decision: 'keep' | 'adjust'
+  reason: string
+  coachNote: string
+  changes: string[]
+  explained: boolean
+  createdAt: number
+}
 export interface Memory {
   id: string
   kind: 'fact' | 'preference' | 'pattern' | 'event' | 'win' | 'struggle'
@@ -146,6 +157,8 @@ export const api = {
 
   coach: {
     roadmap: () => post<Roadmap>('/coach/roadmap'),
+    review: () => post<{ review: PlanReview; roadmap: Roadmap }>('/coach/review'),
+    reviews: () => request<{ reviews: PlanReview[] }>('/coach/reviews'),
     message: (text: string, channel: 'chat' | 'call' = 'chat') => post<{ reply: string }>('/coach/message', { text, channel }),
     callNow: (channels: ('push' | 'call')[]) => post<Delivery>('/coach/call-now', { channels }),
     deliveries: () => request<Delivery[]>('/coach/deliveries'),

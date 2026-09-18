@@ -110,6 +110,19 @@ CREATE TABLE IF NOT EXISTS action_log (
   done INTEGER NOT NULL,
   PRIMARY KEY (user_id, date, action_id)
 );
+CREATE TABLE IF NOT EXISTS plan_reviews (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  date TEXT NOT NULL,            -- user's local date the review ran
+  trigger TEXT NOT NULL,         -- weekly | behind | manual
+  decision TEXT NOT NULL,        -- keep | adjust
+  reason TEXT NOT NULL,
+  coach_note TEXT NOT NULL,      -- what the coach says about it on the next call
+  changes_json TEXT NOT NULL,    -- list of human-readable changes
+  explained INTEGER NOT NULL DEFAULT 0,
+  created_at INTEGER NOT NULL,
+  UNIQUE (user_id, date)
+);
 CREATE TABLE IF NOT EXISTS schedules (
   user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
   times_json TEXT NOT NULL DEFAULT '["09:00","19:00"]',

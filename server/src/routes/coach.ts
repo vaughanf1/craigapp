@@ -5,6 +5,8 @@ import { reply } from '../coach/chat.ts'
 import { deliver } from '../coach/deliver.ts'
 import { remember } from '../coach/memory.ts'
 import { generateRoadmap } from '../coach/roadmap.ts'
+import { reviewPlan, assessStanding } from '../coach/review.ts'
+import { localParts as lp } from '../lib/time.ts'
 import { localParts } from '../lib/time.ts'
 import { requireUser, requireProfile, type Env } from './middleware.ts'
 
@@ -66,6 +68,21 @@ app.post('/roadmap', async (c) => {
   const roadmap = await generateRoadmap(user)
   repo.saveProfile(user.id, { ...user.profile, plan: { ...user.profile.plan, roadmap } })
   return c.json(roadmap)
+})
+
+/** Run the adaptive review now (the Goal page's "Review my plan") */
+app.post('/review', async (c) => {
+  const user = requireProfile(c)
+  if (!user.profile.plan.roadmap) return c.json({ error: 'Build a plan first' }, 409)
+  const review = await reviewPlan(user, 'manual')
+  const fresh = repo.findUser(user.id)!
+  return c.json({ review, roadmap: fresh.profile!.plan.roadmap })
+})
+
+app.get('/reviews', (c) => {
+  const user = c.get('user')
+  const { date } = lp(user.timezone)
+  return c.json({ reviews: repo.listReviews(user.id), standing: assessStanding(user, date) })
 })
 
 /* ---------- memory ---------- */

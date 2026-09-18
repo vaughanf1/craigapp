@@ -205,6 +205,68 @@ describe('the plan & progress', () => {
   })
 })
 
+describe('adaptive re-planning', () => {
+  it('a manual review adjusts the plan and logs why', async () => {
+    parseMock.mockResolvedValueOnce({
+      parsed_output: {
+        decision: 'adjust',
+        reason: 'Two of three actions slipped this week, so the plan gets one easier action.',
+        coachNote: "I've tweaked the plan overnight — the walk is now ten minutes, not twenty. Stepping stone, not stopping stone.",
+        changes: ['Walk 20 minutes → Walk 10 minutes'],
+        roadmap: {
+          summary: 'Nearer stops, easier days.',
+          milestones: [{ title: 'First stop', targetDate: '2099-10-30', metric: { label: 'Weight', target: 77, unit: 'kg' }, why: 'w' }],
+          weeklyCommitments: ['c'],
+          dailyActions: ['Log every meal', 'Walk 10 minutes'],
+        },
+      },
+    })
+    const r = await api('/coach/review', { method: 'POST' }, token)
+    expect(r.status).toBe(200)
+    const body = await r.json() as any
+    expect(body.review.decision).toBe('adjust')
+    expect(body.review.trigger).toBe('manual')
+    // unchanged action keeps its id (tick history survives); the changed one gets a new id
+    expect(body.roadmap.dailyActions[0]).toEqual({ id: 'a1', text: 'Log every meal' })
+    expect(body.roadmap.dailyActions[1].id).not.toBe('a2')
+
+    const list = await (await api('/coach/reviews', {}, token)).json() as any
+    expect(list.reviews[0].changes).toEqual(['Walk 20 minutes → Walk 10 minutes'])
+    expect(list.standing).toHaveProperty('actionRate')
+  })
+
+  it('the next brief explains the change, once', async () => {
+    parseMock.mockResolvedValueOnce({ parsed_output: { spoken: 'Morning. Small tweak overnight…', pushTitle: 'Maya', pushBody: 'b', tomorrowFocus: '' } })
+    await api('/coach/call-now', { method: 'POST', body: JSON.stringify({ channels: [] }) }, token)
+    const ctx = parseMock.mock.calls.at(-1)![0].system[1].text
+    expect(ctx).toContain("PLAN UPDATE YOU HAVEN'T TOLD THEM YET")
+    expect(ctx).toContain('the walk is now ten minutes')
+
+    parseMock.mockResolvedValueOnce({ parsed_output: { spoken: 'Evening.', pushTitle: 'Maya', pushBody: 'b', tomorrowFocus: '' } })
+    await api('/coach/call-now', { method: 'POST', body: JSON.stringify({ channels: [] }) }, token)
+    expect(parseMock.mock.calls.at(-1)![0].system[1].text).not.toContain('PLAN UPDATE YOU HAVEN')
+  })
+
+  it('the nightly job reviews at 03:00 local when due, and only once', async () => {
+    const user = repo.findUserByPhone('+447700900123')!
+    // Pretend the last review was 8 days ago
+    const db = (await import('../src/lib/db.ts')).getDb()
+    db.prepare("UPDATE plan_reviews SET date = ? WHERE user_id = ?").run('2020-01-01', user.id)
+    const { reviewsDue } = await import('../src/scheduler.ts')
+    const at3am = (() => { const d = new Date(); d.setHours(3, 0, 0, 0); return d })()
+    const due = reviewsDue(repo.allUsersWithSchedules(), at3am)
+    expect(due.map((d) => d.trigger)).toEqual(['weekly'])
+    const at4am = new Date(at3am.getTime() + 3600_000)
+    expect(reviewsDue(repo.allUsersWithSchedules(), at4am)).toHaveLength(0)
+
+    parseMock.mockResolvedValueOnce({ parsed_output: { decision: 'keep', reason: 'On course.', coachNote: '', changes: [], roadmap: null } })
+    expect(await tick(at3am)).toBeGreaterThanOrEqual(1)
+    expect(reviewsDue(repo.allUsersWithSchedules(), at3am)).toHaveLength(0) // idempotent per day
+    const list = await (await api('/coach/reviews', {}, token)).json() as any
+    expect(list.reviews[0]).toMatchObject({ decision: 'keep', trigger: 'weekly' })
+  })
+})
+
 describe('deliveries — the call', () => {
   const brief = { spoken: 'Morning Craig. Yesterday you came in at 1,650 against 1,800 — cooking on gas. Today, the office cake: one slice, not three. What time is lunch?', pushTitle: 'Maya is calling', pushBody: 'Yesterday: 1,650 of 1,800. Nice.', tomorrowFocus: '' }
 

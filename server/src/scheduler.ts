@@ -1,7 +1,24 @@
 import * as repo from './lib/repo.ts'
 import { localParts } from './lib/time.ts'
 import { deliver } from './coach/deliver.ts'
+import { assessStanding, reviewPlan, reviewTrigger } from './coach/review.ts'
 import type { DeliveryKind } from './lib/types.ts'
+
+const REVIEW_TIME = '03:00'
+
+/** Users whose local clock reads 03:00 and who are due a plan review tonight. Pure — used by tests. */
+export function reviewsDue(users: ReturnType<typeof repo.allUsersWithSchedules>, now = new Date()) {
+  const due: { user: repo.User; trigger: 'weekly' | 'behind' }[] = []
+  for (const u of users) {
+    if (!u.profile?.plan.roadmap) continue
+    const { date, time } = localParts(u.timezone, now)
+    if (time !== REVIEW_TIME || repo.hasReview(u.id, date)) continue
+    const standing = assessStanding(u, date)
+    const trigger = standing && reviewTrigger(standing)
+    if (trigger) due.push({ user: u, trigger })
+  }
+  return due
+}
 
 /**
  * Every minute: for each user whose local clock has just reached one of their
@@ -31,7 +48,8 @@ export function dueNow(users: ReturnType<typeof repo.allUsersWithSchedules>, now
 }
 
 export async function tick(now = new Date()): Promise<number> {
-  const due = dueNow(repo.allUsersWithSchedules(), now)
+  const users = repo.allUsersWithSchedules()
+  const due = dueNow(users, now)
   await Promise.all(due.map(async (d) => {
     try {
       await deliver(d.user, d.kind, d.slot, d.channels, d.date)
@@ -39,7 +57,17 @@ export async function tick(now = new Date()): Promise<number> {
       console.error('[scheduler] delivery failed', d.user.id, d.slot, err)
     }
   }))
-  return due.length
+  // Overnight: re-plan for anyone due a review, so the morning call can explain it
+  const reviews = reviewsDue(users, now)
+  await Promise.all(reviews.map(async (r) => {
+    try {
+      const result = await reviewPlan(r.user, r.trigger)
+      console.log(`[review] ${r.user.id} ${r.trigger} → ${result.decision}${result.changes.length ? ': ' + result.changes.join('; ') : ''}`)
+    } catch (err) {
+      console.error('[review] failed', r.user.id, err)
+    }
+  }))
+  return due.length + reviews.length
 }
 
 export function startScheduler(): () => void {

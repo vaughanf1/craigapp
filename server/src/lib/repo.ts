@@ -117,6 +117,63 @@ export function setAction(userId: string, a: ActionLog) {
     .run(userId, a.date, a.actionId, a.done ? 1 : 0)
 }
 
+/* ---------- plan reviews (the adaptive re-planning log) ---------- */
+
+export interface PlanReview {
+  id: string
+  date: string
+  trigger: 'weekly' | 'behind' | 'manual'
+  decision: 'keep' | 'adjust'
+  reason: string
+  coachNote: string
+  changes: string[]
+  explained: boolean
+  createdAt: number
+}
+
+function toReview(r: Row): PlanReview {
+  return {
+    id: r.id as string,
+    date: r.date as string,
+    trigger: r.trigger as PlanReview['trigger'],
+    decision: r.decision as PlanReview['decision'],
+    reason: r.reason as string,
+    coachNote: r.coach_note as string,
+    changes: JSON.parse(r.changes_json as string),
+    explained: Boolean(r.explained),
+    createdAt: r.created_at as number,
+  }
+}
+
+export function listReviews(userId: string, limit = 10): PlanReview[] {
+  return (getDb().prepare('SELECT * FROM plan_reviews WHERE user_id = ? ORDER BY created_at DESC LIMIT ?').all(userId, limit) as Row[]).map(toReview)
+}
+
+export function hasReview(userId: string, date: string): boolean {
+  return Boolean(getDb().prepare('SELECT 1 FROM plan_reviews WHERE user_id = ? AND date = ?').get(userId, date))
+}
+
+export function addReview(userId: string, r: Omit<PlanReview, 'id' | 'createdAt' | 'explained'>): PlanReview {
+  const id = uid()
+  getDb()
+    .prepare(`INSERT INTO plan_reviews (id, user_id, date, trigger, decision, reason, coach_note, changes_json, created_at)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+              ON CONFLICT(user_id, date) DO UPDATE SET trigger = excluded.trigger, decision = excluded.decision, reason = excluded.reason,
+                coach_note = excluded.coach_note, changes_json = excluded.changes_json, explained = 0, created_at = excluded.created_at`)
+    .run(id, userId, r.date, r.trigger, r.decision, r.reason, r.coachNote, JSON.stringify(r.changes), Date.now())
+  return listReviews(userId, 1)[0]
+}
+
+/** The latest adjustment the coach hasn't yet told them about */
+export function unexplainedReview(userId: string): PlanReview | null {
+  const r = getDb().prepare("SELECT * FROM plan_reviews WHERE user_id = ? AND explained = 0 AND decision = 'adjust' ORDER BY created_at DESC LIMIT 1").get(userId) as Row | undefined
+  return r ? toReview(r) : null
+}
+
+export function markReviewExplained(id: string) {
+  getDb().prepare('UPDATE plan_reviews SET explained = 1 WHERE id = ?').run(id)
+}
+
 /* ---------- messages ---------- */
 
 export interface StoredMessage {

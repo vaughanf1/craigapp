@@ -15,7 +15,10 @@ towards whatever goal you're chasing.
 2. **It remembers.** Every chat, call and check-in is mined by Claude for durable facts about you (`memories`)
    and a per-day summary. Both feed the next conversation. There's a Memory page to see and prune what your
    coach knows.
-3. **Real coaches, not emoji.** Eight video avatars (woman/man × 20s–50s), filterable in the picker, each with
+3. **It re-plans itself.** A nightly review compares progress to the current stop and adjusts the plan —
+   a nearer stop when behind, easier actions when they're slipping — and the coach explains the change
+   on the next morning call. Every revision is logged on the Goal page.
+4. **Real coaches, not emoji.** Eight video avatars (woman/man × 20s–50s), filterable in the picker, each with
    an intro clip. The call screen puts them on camera.
 
 ## Features
@@ -66,6 +69,8 @@ is `123456` until Twilio Verify is configured.
 Endpoints: `/auth/*` (phone OTP), `/me/*` (profile, check-ins, food, schedule, export, delete),
 `/coach/message`, `/coach/call-now`, `/coach/deliveries/*`, `/coach/memory/*`, `/push/*`, `/twilio/*`.
 The scheduler ticks every minute and is idempotent per (user, local date, slot).
+
+See **SETUP.md** for the exact keys/accounts to switch calls, SMS and the brain on.
 
 Deploy: `server/Dockerfile` + `fly.toml` (persistent volume for SQLite; machine never auto-stops so the
 scheduler keeps ringing people). Set the `API_URL` repo variable so the Pages build points at it.

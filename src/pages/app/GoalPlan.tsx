@@ -1,9 +1,9 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useStore } from '../../lib/store'
 import { getArea } from '../../data/goalAreas'
 import { getCoach } from '../../data/coaches'
-import { api } from '../../lib/api'
+import { api, type PlanReview } from '../../lib/api'
 import { Card, Rise } from '../../components/ui'
 import { DailyActions, RoadmapTimeline, WeightStanding } from '../../components/Roadmap'
 
@@ -14,6 +14,24 @@ export default function GoalPlan() {
   const coach = getCoach(profile.coachId)
   const roadmap = profile.plan.roadmap
   const [rebuilding, setRebuilding] = useState(false)
+  const [reviews, setReviews] = useState<PlanReview[]>([])
+  const [reviewing, setReviewing] = useState(false)
+
+  useEffect(() => {
+    if (online) api.coach.reviews().then((r) => setReviews(r.reviews)).catch(() => {})
+  }, [online])
+
+  const review = async () => {
+    setReviewing(true)
+    try {
+      const r = await api.coach.review()
+      setRoadmap(r.roadmap)
+      setReviews((list) => [r.review, ...list.filter((x) => x.id !== r.review.id)])
+    } finally {
+      setReviewing(false)
+    }
+  }
+  const latest = reviews[0]
 
   const rebuild = async () => {
     setRebuilding(true)
@@ -71,6 +89,27 @@ export default function GoalPlan() {
 
       {roadmap ? (
         <>
+          {latest && (
+            <Rise delay={0.06}>
+              <Card className={`p-5 ${latest.decision === 'adjust' ? 'bg-accent/10' : ''}`}>
+                <div className="flex items-baseline justify-between gap-3">
+                  <h2 className="font-semibold">{latest.decision === 'adjust' ? `${coach.name} adjusted the plan` : 'Plan reviewed'}</h2>
+                  <span className="shrink-0 text-xs text-ink-secondary">
+                    {new Date(`${latest.date}T12:00:00`).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}
+                    {latest.trigger === 'behind' ? ' · early check' : latest.trigger === 'weekly' ? ' · weekly' : ''}
+                  </span>
+                </div>
+                <p className="mt-1 text-[15px] leading-relaxed">{latest.reason}</p>
+                {latest.changes.length > 0 && (
+                  <ul className="mt-2 space-y-1 text-sm text-ink-secondary">
+                    {latest.changes.map((c) => (
+                      <li key={c}>→ {c}</li>
+                    ))}
+                  </ul>
+                )}
+              </Card>
+            </Rise>
+          )}
           <Rise delay={0.08}>
             <WeightStanding roadmap={roadmap} />
           </Rise>
@@ -82,12 +121,22 @@ export default function GoalPlan() {
               <div className="mb-4 flex items-baseline justify-between">
                 <h2 className="font-semibold">The stops</h2>
                 {online && (
-                  <button onClick={rebuild} disabled={rebuilding} className="text-sm text-accent disabled:opacity-40">
-                    {rebuilding ? 'Rebuilding…' : 'Rebuild plan'}
-                  </button>
+                  <div className="flex gap-3">
+                    <button onClick={review} disabled={reviewing || rebuilding} className="text-sm text-accent disabled:opacity-40">
+                      {reviewing ? 'Reviewing…' : 'Review now'}
+                    </button>
+                    <button onClick={rebuild} disabled={rebuilding || reviewing} className="text-sm text-ink-secondary disabled:opacity-40">
+                      {rebuilding ? 'Rebuilding…' : 'Start over'}
+                    </button>
+                  </div>
                 )}
               </div>
-              <p className="mb-4 text-[15px] leading-relaxed text-ink-secondary">{roadmap.summary}</p>
+              <p className="mb-1 text-[15px] leading-relaxed text-ink-secondary">{roadmap.summary}</p>
+              {online && (
+                <p className="mb-4 text-xs text-ink-secondary">
+                  {coach.name} reviews this every week overnight — sooner if you're behind — and explains any change on the morning call.
+                </p>
+              )}
               <RoadmapTimeline roadmap={roadmap} />
             </Card>
           </Rise>

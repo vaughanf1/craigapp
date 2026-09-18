@@ -37,5 +37,8 @@ export async function generateBrief(user: repo.User, kind: DeliveryKind): Promis
   })
   const out = response.parsed_output
   if (!out) throw new Error('Brief generation returned no structured output')
+  // The brief carries the explanation — don't repeat it on every call
+  const pending = repo.unexplainedReview(user.id)
+  if (pending) repo.markReviewExplained(pending.id)
   return out
 }
