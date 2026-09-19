@@ -47,7 +47,11 @@ export function dueNow(users: ReturnType<typeof repo.allUsersWithSchedules>, now
   return due
 }
 
+/** Calls not answered within this long count as missed — feeds the accountability tally */
+export const ANSWER_WINDOW_MS = 2 * 3600_000
+
 export async function tick(now = new Date()): Promise<number> {
+  repo.expireUnanswered(ANSWER_WINDOW_MS)
   const users = repo.allUsersWithSchedules()
   const due = dueNow(users, now)
   await Promise.all(due.map(async (d) => {

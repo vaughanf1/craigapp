@@ -110,6 +110,27 @@ CREATE TABLE IF NOT EXISTS action_log (
   done INTEGER NOT NULL,
   PRIMARY KEY (user_id, date, action_id)
 );
+CREATE TABLE IF NOT EXISTS warmaps (
+  user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  json TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'ready',   -- building | ready | failed
+  progress TEXT NOT NULL DEFAULT '',      -- what the builder is doing right now
+  updated_at INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS tasks (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  phase_id TEXT,
+  title TEXT NOT NULL,
+  detail TEXT NOT NULL DEFAULT '',
+  due TEXT,
+  status TEXT NOT NULL DEFAULT 'todo',
+  effort TEXT NOT NULL DEFAULT 'M',
+  source TEXT NOT NULL DEFAULT 'plan',
+  created_at INTEGER NOT NULL,
+  done_at INTEGER
+);
+CREATE INDEX IF NOT EXISTS tasks_user ON tasks(user_id, status);
 CREATE TABLE IF NOT EXISTS plan_reviews (
   id TEXT PRIMARY KEY,
   user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,

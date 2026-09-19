@@ -18,6 +18,8 @@ import { COMMON_EXERCISE, COMMON_FOODS } from '../../data/calories'
 import { parseFood } from '../../lib/food'
 import { Card, CoachAvatar, Rise } from '../../components/ui'
 import { DailyActions } from '../../components/Roadmap'
+import { Board } from '../../components/WarMapView'
+import { AccountabilityTile } from '../../components/Accountability'
 import { CoachFace } from '../../components/CoachFace'
 import type { FoodEntry } from '../../lib/types'
 
@@ -98,6 +100,18 @@ export default function Today() {
       {profile.plan.roadmap && (
         <Rise delay={0.04}>
           <DailyActions roadmap={profile.plan.roadmap} />
+        </Rise>
+      )}
+
+      {state.warmap && (
+        <Rise delay={0.05}>
+          <Board compact />
+        </Rise>
+      )}
+
+      {state.session && (
+        <Rise delay={0.06}>
+          <AccountabilityTile />
         </Rise>
       )}
 

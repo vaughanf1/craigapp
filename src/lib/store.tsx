@@ -1,10 +1,10 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react'
-import type { ActionLog, AppState, CheckInRecord, ChatMessage, FoodEntry, Roadmap, UserProfile, WeighIn } from './types'
+import type { ActionLog, AppState, CheckInRecord, ChatMessage, FoodEntry, Roadmap, Task, UserProfile, WarMap, WeighIn } from './types'
 import { api, mirror, type MeResponse } from './api'
 
 const STORAGE_KEY = 'bemore-state-v1'
 
-const EMPTY: AppState = { profile: null, checkIns: [], foodLog: [], chat: [], weighIns: [], actionLog: [], session: null }
+const EMPTY: AppState = { profile: null, checkIns: [], foodLog: [], chat: [], weighIns: [], actionLog: [], warmap: null, tasks: [], session: null }
 
 function load(): AppState {
   try {
@@ -27,6 +27,10 @@ interface Store {
   addWeighIn: (w: WeighIn) => void
   setAction: (a: ActionLog) => void
   setRoadmap: (r: Roadmap) => void
+  setWarMap: (map: WarMap | null, tasks: Task[]) => void
+  addTask: (t: Omit<Task, 'id' | 'createdAt' | 'doneAt' | 'status' | 'source'>) => void
+  updateTask: (id: string, patch: Partial<Pick<Task, 'title' | 'detail' | 'due' | 'status' | 'effort'>>) => void
+  removeTask: (id: string) => void
   reset: () => void
   /** Whether this build talks to a Be More server and the user is signed in */
   online: boolean
@@ -57,6 +61,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       foodLog: me.foodLog,
       weighIns: me.weighIns ?? [],
       actionLog: me.actionLog ?? [],
+      warmap: s.warmap,
+      tasks: s.tasks,
       chat: me.chat.map((m) => ({ id: m.id, from: m.from, text: m.text, timestamp: m.timestamp })),
       session: { phone: me.user.phone, userId: me.user.id, timezone: me.user.timezone, memoryCount: me.memoryCount },
     }))
@@ -113,6 +119,29 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     },
     setRoadmap: (roadmap) =>
       setState((s) => (s.profile ? { ...s, profile: { ...s.profile, plan: { ...s.profile.plan, roadmap } } } : s)),
+    setWarMap: (warmap, tasks) => setState((s) => ({ ...s, warmap, tasks })),
+    addTask: (t) => {
+      const local: Task = { ...t, id: uid(), status: 'todo', source: 'user', createdAt: Date.now(), doneAt: null }
+      setState((s) => ({ ...s, tasks: [...s.tasks, local] }))
+      if (api.connected && api.hasToken()) {
+        api.coach.addTask({ title: t.title, detail: t.detail, due: t.due, effort: t.effort, phaseId: t.phaseId })
+          .then((saved) => setState((s) => ({ ...s, tasks: s.tasks.map((x) => (x.id === local.id ? saved : x)) })))
+          .catch((err) => console.warn('[sync] task failed', err))
+      }
+    },
+    updateTask: (id, patch) => {
+      setState((s) => ({
+        ...s,
+        tasks: s.tasks.map((t) =>
+          t.id === id ? { ...t, ...patch, doneAt: patch.status === 'done' ? (t.doneAt ?? Date.now()) : patch.status ? null : t.doneAt } : t,
+        ),
+      }))
+      mirror(() => api.coach.updateTask(id, patch))
+    },
+    removeTask: (id) => {
+      setState((s) => ({ ...s, tasks: s.tasks.filter((t) => t.id !== id) }))
+      mirror(() => api.coach.deleteTask(id))
+    },
     reset: () => {
       api.signOut()
       setState(EMPTY)

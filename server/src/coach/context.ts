@@ -2,6 +2,7 @@ import * as repo from '../lib/repo.ts'
 import { localParts, localDayRange, shiftDate } from '../lib/time.ts'
 import type { CoachContext } from './prompt.ts'
 import type { CheckIn } from '../lib/types.ts'
+import { accountability } from '../../../shared/pricing.ts'
 
 /** Consecutive check-in days ending today or yesterday, with one freeze per rolling week (mirrors the app) */
 export function currentStreak(checkIns: CheckIn[], today: string): number {
@@ -45,6 +46,9 @@ export function buildContext(user: repo.User): CoachContext {
     localTime: time,
     streak: currentStreak(checkIns, today),
     planUpdate: repo.unexplainedReview(user.id),
+    accountability: accountability(today.slice(0, 7), repo.monthDeliveryStatuses(user.id, today.slice(0, 7))),
+    warmap: repo.getWarMap(user.id).map,
+    tasks: repo.listTasks(user.id),
     weighIns: repo.listWeighIns(user.id),
     actionLog: repo.listActionLog(user.id, shiftDate(today, -6)),
   }

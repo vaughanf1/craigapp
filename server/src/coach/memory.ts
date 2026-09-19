@@ -4,6 +4,7 @@ import { anthropic, MODEL } from './client.ts'
 import * as repo from '../lib/repo.ts'
 import { localParts } from '../lib/time.ts'
 import { buildContext } from './context.ts'
+import { currentPhase } from '../../../shared/warmap.ts'
 
 /**
  * The memory engine. Every conversation is mined for durable facts about the
@@ -28,6 +29,12 @@ const MemoryUpdate = z.object({
   actionsDone: z.array(z.string()).describe('IDs of daily actions (from the list) they said they completed today'),
   actionsMissed: z.array(z.string()).describe('IDs of daily actions they said they did NOT do today'),
   weighIn: z.number().nullable().describe('If they stated their current weight today, in kg (convert stone/lbs); otherwise null'),
+  tasksDone: z.array(z.string()).describe('IDs of board tasks they said they have completed'),
+  newTasks: z.array(z.object({
+    title: z.string().describe('Imperative, under 10 words'),
+    detail: z.string(),
+    due: z.string().nullable().describe('YYYY-MM-DD if they gave a day ("Friday", "next week") — resolve it from today\'s date; else null'),
+  })).describe('Concrete one-off things they committed to doing that are not already on the board'),
 })
 
 const pending = new Map<string, NodeJS.Timeout>()
@@ -64,6 +71,9 @@ Their goal: ${user.profile.plan.statement}
 Today (their local date): ${date}
 Today's food log: ${ctx.todayFood.map((f) => `${f.label} ${f.calories}`).join(', ') || 'nothing logged'}${user.profile.calorieTarget ? ` (target ${user.profile.calorieTarget})` : ''}
 
+Board tasks (id: title, due) — mark done if they say so; add new ones they commit to:
+${repo.listTasks(userId).filter((t) => t.status !== 'done' && t.status !== 'skipped').map((t) => `${t.id}: ${t.title}${t.due ? `, due ${t.due}` : ''}`).join('\n') || '(empty)'}
+
 Daily actions on their plan (id: text):
 ${user.profile.plan.roadmap?.dailyActions.map((a) => `${a.id}: ${a.text}`).join('\n') || '(no plan yet)'}
 
@@ -97,6 +107,12 @@ ${existing.map((m) => `${m.id}: [${m.kind}] ${m.text}`).join('\n') || '(none)'}`
   for (const id of out.actionsDone) if (actionIds.has(id)) repo.setAction(userId, { date, actionId: id, done: true })
   for (const id of out.actionsMissed) if (actionIds.has(id)) repo.setAction(userId, { date, actionId: id, done: false })
   if (out.weighIn && out.weighIn > 20 && out.weighIn < 400) repo.upsertWeighIn(userId, { date, kg: out.weighIn })
+  const openTasks = new Set(repo.listTasks(userId).filter((t) => t.status === 'todo' || t.status === 'doing').map((t) => t.id))
+  for (const id of out.tasksDone ?? []) if (openTasks.has(id)) repo.updateTask(userId, id, { status: 'done' })
+  const phase = repo.getWarMap(userId).map ? currentPhase(repo.getWarMap(userId).map!, date) : null
+  for (const t of (out.newTasks ?? []).slice(0, 5)) {
+    repo.addTask(userId, { phaseId: phase?.id ?? null, title: t.title, detail: t.detail, due: t.due, status: 'todo', effort: 'M', source: 'coach' })
+  }
   repo.markMemorised(fresh.map((m) => m.id))
   return { added: out.add.length, archived: toArchive.length }
 }

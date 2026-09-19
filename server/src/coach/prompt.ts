@@ -4,6 +4,8 @@ import { formatWeight, halfwayKg } from '../../../shared/units.ts'
 import { currentMilestone, daysBetween, weightProgress } from '../../../shared/roadmap.ts'
 import type { User } from '../lib/repo.ts'
 import type { ActionLog, WeighIn } from '../lib/types.ts'
+import { boardColumns, currentPhase, type Task, type WarMap } from '../../../shared/warmap.ts'
+import { pounds, type AccountabilityMonth } from '../../../shared/pricing.ts'
 
 export interface CoachContext {
   user: User
@@ -20,6 +22,43 @@ export interface CoachContext {
   streak: number
   weighIns: WeighIn[]
   actionLog: ActionLog[]       // last 7 days
+  warmap: WarMap | null
+  tasks: Task[]
+  accountability: AccountabilityMonth | null
+}
+
+export function accountabilityBlock(ctx: CoachContext): string {
+  const a = ctx.accountability
+  if (!a || !a.scheduled) return ''
+  const price = a.penaltyPence
+    ? `Next month is already ${pounds(a.nextMonthPence)} because of missed calls.`
+    : a.missesUntilPenalty <= 2
+      ? `${a.missesUntilPenalty} more missed call${a.missesUntilPenalty === 1 ? '' : 's'} and next month's price goes up — say so plainly, once, without nagging.`
+      : a.creditPence
+        ? `They've earned next month's ${pounds(a.creditPence)} credit — worth a mention.`
+        : ''
+  return `\nCALLS THIS MONTH: ${a.answered} answered, ${a.missed} missed of ${a.scheduled} scheduled. ${price}`
+}
+
+/** The strategic layer: current phase, key results, and the board */
+export function boardBlock(ctx: CoachContext): string {
+  if (!ctx.warmap) return ''
+  const phase = currentPhase(ctx.warmap, ctx.today)
+  const cols = boardColumns(ctx.tasks, ctx.today)
+  const task = (t: Task) => `- [${t.id}] ${t.title}${t.due ? ` (due ${t.due})` : ''}${t.status === 'doing' ? ' — in progress' : ''}`
+  return `
+THE WAR MAP (strategic plan to ${ctx.warmap.horizon.end})
+North star: ${ctx.warmap.northStar}
+${phase ? `Current phase: ${phase.name} (${phase.start} → ${phase.end}) — ${phase.objective}\nKey results: ${phase.keyResults.map((k) => `${k.done ? '✓' : '○'} ${k.text}`).join('; ')}` : 'No phase active.'}
+
+THE BOARD (one-off tasks; ask about due ones, celebrate done ones, and add a task when they commit to something)
+Overdue:
+${cols.overdue.map(task).join('\n') || '(none)'}
+This week:
+${cols.thisWeek.map(task).join('\n') || '(none)'}
+Up next:
+${cols.upNext.slice(0, 5).map(task).join('\n') || '(none)'}
+Recently done: ${cols.done.slice(0, 3).map((t) => t.title).join('; ') || '(none yet)'}`
 }
 
 /** The plan and where they stand against it — the heart of every call */
@@ -171,5 +210,6 @@ ${recentCheckIns || '(none yet)'}
 Yesterday's food log: ${kcal(ctx.yesterdayFood)}
 Today's food log so far: ${kcal(ctx.todayFood)}
 
-${progressBlock(ctx)}`
+${progressBlock(ctx)}
+${boardBlock(ctx)}${accountabilityBlock(ctx)}`
 }

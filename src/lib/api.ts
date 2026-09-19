@@ -1,4 +1,6 @@
 import type { ActionLog, CheckInRecord, FoodEntry, Roadmap, UserProfile, WeighIn } from './types'
+import type { Task, WarMap } from './warmap'
+import type { AccountabilityMonth } from './pricing'
 
 /**
  * Be More API client. When VITE_API_URL is unset the app runs local-only
@@ -148,6 +150,7 @@ export const api = {
   weighIn: (w: WeighIn) => post<{ ok: true }>('/me/weighins', w),
   setAction: (a: ActionLog) => post<{ ok: true }>('/me/actions', a),
   schedule: () => request<Schedule>('/me/schedule'),
+  accountability: () => request<AccountabilityMonth>('/me/accountability'),
   saveSchedule: (s: Schedule) => put<Schedule>('/me/schedule', s),
   exportData: () => request<unknown>('/me/export'),
   deleteAccount: async () => {
@@ -158,6 +161,11 @@ export const api = {
   coach: {
     roadmap: () => post<Roadmap>('/coach/roadmap'),
     review: () => post<{ review: PlanReview; roadmap: Roadmap }>('/coach/review'),
+    warmap: () => request<{ status: 'building' | 'ready' | 'failed' | 'none'; progress: string; map: WarMap | null; tasks: Task[] }>('/coach/warmap'),
+    rebuildWarmap: () => post<{ status: string }>('/coach/warmap/rebuild'),
+    addTask: (t: { title: string; detail?: string; due?: string | null; effort?: Task['effort']; phaseId?: string | null }) => post<Task>('/coach/tasks', t),
+    updateTask: (id: string, patch: Partial<Pick<Task, 'title' | 'detail' | 'due' | 'status' | 'effort'>>) => put<Task>(`/coach/tasks/${id}`, patch),
+    deleteTask: (id: string) => del<{ ok: true }>(`/coach/tasks/${id}`),
     reviews: () => request<{ reviews: PlanReview[] }>('/coach/reviews'),
     message: (text: string, channel: 'chat' | 'call' = 'chat') => post<{ reply: string }>('/coach/message', { text, channel }),
     callNow: (channels: ('push' | 'call')[]) => post<Delivery>('/coach/call-now', { channels }),

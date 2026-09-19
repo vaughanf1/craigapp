@@ -89,6 +89,9 @@ export default function CoachChat() {
             {online && ' · remembers you'}
           </p>
         </div>
+        <Link to="/app/memory" className="flex h-11 w-11 items-center justify-center rounded-full bg-black/[0.05] text-lg" aria-label="Memory" title="What your coach remembers">
+          🧠
+        </Link>
         <Link
           to="/app/call"
           className="flex h-11 w-11 items-center justify-center rounded-full bg-leaf/15 text-lg text-leaf"

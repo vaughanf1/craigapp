@@ -6,6 +6,7 @@ import { deliver } from '../coach/deliver.ts'
 import { remember } from '../coach/memory.ts'
 import { generateRoadmap } from '../coach/roadmap.ts'
 import { reviewPlan, assessStanding } from '../coach/review.ts'
+import { buildWarMapInBackground } from '../coach/warmap.ts'
 import { localParts as lp } from '../lib/time.ts'
 import { localParts } from '../lib/time.ts'
 import { requireUser, requireProfile, type Env } from './middleware.ts'
@@ -67,7 +68,60 @@ app.post('/roadmap', async (c) => {
   const user = requireProfile(c)
   const roadmap = await generateRoadmap(user)
   repo.saveProfile(user.id, { ...user.profile, plan: { ...user.profile.plan, roadmap } })
+  // The strategic layer builds itself from here — no button needed
+  buildWarMapInBackground(repo.findUser(user.id)!)
   return c.json(roadmap)
+})
+
+/* ---------- war map & board ---------- */
+
+app.get('/warmap', (c) => {
+  const user = c.get('user')
+  const stored = repo.getWarMap(user.id)
+  // Nothing yet but a plan exists (e.g. older account): start building
+  if (stored.status === 'none' && user.profile?.plan.roadmap) {
+    buildWarMapInBackground(user)
+    return c.json({ status: 'building', progress: 'Drafting the map', map: null, tasks: [] })
+  }
+  return c.json({ status: stored.status, progress: stored.progress, map: stored.map, tasks: repo.listTasks(user.id) })
+})
+
+app.post('/warmap/rebuild', (c) => {
+  const user = requireProfile(c)
+  buildWarMapInBackground(user)
+  return c.json({ status: 'building' })
+})
+
+app.post('/tasks', async (c) => {
+  const user = c.get('user')
+  const body = z.object({
+    title: z.string().min(1).max(120),
+    detail: z.string().max(500).default(''),
+    due: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().default(null),
+    effort: z.enum(['S', 'M', 'L']).default('M'),
+    phaseId: z.string().nullable().default(null),
+  }).safeParse(await c.req.json())
+  if (!body.success) return c.json({ error: 'Invalid task' }, 400)
+  return c.json(repo.addTask(user.id, { ...body.data, status: 'todo', source: 'user' }))
+})
+
+app.put('/tasks/:id', async (c) => {
+  const user = c.get('user')
+  const body = z.object({
+    title: z.string().min(1).max(120).optional(),
+    detail: z.string().max(500).optional(),
+    due: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
+    status: z.enum(['todo', 'doing', 'done', 'skipped']).optional(),
+    effort: z.enum(['S', 'M', 'L']).optional(),
+  }).safeParse(await c.req.json())
+  if (!body.success) return c.json({ error: 'Invalid task' }, 400)
+  const t = repo.updateTask(user.id, c.req.param('id'), body.data)
+  return t ? c.json(t) : c.json({ error: 'Not found' }, 404)
+})
+
+app.delete('/tasks/:id', (c) => {
+  repo.deleteTask(c.get('user').id, c.req.param('id'))
+  return c.json({ ok: true })
 })
 
 /** Run the adaptive review now (the Goal page's "Review my plan") */

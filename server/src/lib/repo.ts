@@ -117,6 +117,80 @@ export function setAction(userId: string, a: ActionLog) {
     .run(userId, a.date, a.actionId, a.done ? 1 : 0)
 }
 
+/* ---------- war map & task board ---------- */
+
+import type { Task, WarMap } from '../../../shared/warmap.ts'
+
+export interface StoredWarMap { map: WarMap | null; status: 'building' | 'ready' | 'failed' | 'none'; progress: string; updatedAt: number }
+
+export function getWarMap(userId: string): StoredWarMap {
+  const r = getDb().prepare('SELECT * FROM warmaps WHERE user_id = ?').get(userId) as Row | undefined
+  if (!r) return { map: null, status: 'none', progress: '', updatedAt: 0 }
+  return { map: r.json ? (JSON.parse(r.json as string) as WarMap) : null, status: r.status as StoredWarMap['status'], progress: r.progress as string, updatedAt: r.updated_at as number }
+}
+
+export function setWarMapStatus(userId: string, status: 'building' | 'ready' | 'failed', progress = '') {
+  getDb()
+    .prepare(`INSERT INTO warmaps (user_id, json, status, progress, updated_at) VALUES (?, '', ?, ?, ?)
+              ON CONFLICT(user_id) DO UPDATE SET status = excluded.status, progress = excluded.progress, updated_at = excluded.updated_at`)
+    .run(userId, status, progress, Date.now())
+}
+
+export function saveWarMap(userId: string, map: WarMap) {
+  getDb()
+    .prepare(`INSERT INTO warmaps (user_id, json, status, progress, updated_at) VALUES (?, ?, 'ready', '', ?)
+              ON CONFLICT(user_id) DO UPDATE SET json = excluded.json, status = 'ready', progress = '', updated_at = excluded.updated_at`)
+    .run(userId, JSON.stringify(map), Date.now())
+}
+
+function toTask(r: Row): Task {
+  return {
+    id: r.id as string,
+    phaseId: (r.phase_id as string | null) ?? null,
+    title: r.title as string,
+    detail: r.detail as string,
+    due: (r.due as string | null) ?? null,
+    status: r.status as Task['status'],
+    effort: r.effort as Task['effort'],
+    source: r.source as Task['source'],
+    createdAt: r.created_at as number,
+    doneAt: (r.done_at as number | null) ?? null,
+  }
+}
+
+export function listTasks(userId: string): Task[] {
+  return (getDb().prepare('SELECT * FROM tasks WHERE user_id = ? ORDER BY created_at').all(userId) as Row[]).map(toTask)
+}
+
+export function addTask(userId: string, t: Omit<Task, 'id' | 'createdAt' | 'doneAt'>): Task {
+  const id = uid()
+  getDb()
+    .prepare('INSERT INTO tasks (id, user_id, phase_id, title, detail, due, status, effort, source, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+    .run(id, userId, t.phaseId, t.title, t.detail, t.due, t.status, t.effort, t.source, Date.now())
+  return { ...t, id, createdAt: Date.now(), doneAt: null }
+}
+
+export function updateTask(userId: string, id: string, patch: Partial<Pick<Task, 'title' | 'detail' | 'due' | 'status' | 'effort' | 'phaseId'>>): Task | null {
+  const cur = getDb().prepare('SELECT * FROM tasks WHERE id = ? AND user_id = ?').get(id, userId) as Row | undefined
+  if (!cur) return null
+  const next = { ...toTask(cur), ...patch }
+  const doneAt = next.status === 'done' ? (toTask(cur).status === 'done' ? toTask(cur).doneAt : Date.now()) : null
+  getDb()
+    .prepare('UPDATE tasks SET phase_id = ?, title = ?, detail = ?, due = ?, status = ?, effort = ?, done_at = ? WHERE id = ? AND user_id = ?')
+    .run(next.phaseId, next.title, next.detail, next.due, next.status, next.effort, doneAt, id, userId)
+  return { ...next, doneAt }
+}
+
+export function deleteTask(userId: string, id: string) {
+  getDb().prepare('DELETE FROM tasks WHERE id = ? AND user_id = ?').run(id, userId)
+}
+
+/** Replace plan-sourced open tasks (a rebuild); keep anything the coach or user added, and anything done */
+export function replacePlanTasks(userId: string, tasks: Omit<Task, 'id' | 'createdAt' | 'doneAt'>[]) {
+  getDb().prepare("DELETE FROM tasks WHERE user_id = ? AND source = 'plan' AND status IN ('todo', 'doing')").run(userId)
+  for (const t of tasks) addTask(userId, t)
+}
+
 /* ---------- plan reviews (the adaptive re-planning log) ---------- */
 
 export interface PlanReview {
@@ -369,6 +443,21 @@ export function setDeliveryStatus(id: string, status: string, callSid?: string) 
   getDb()
     .prepare('UPDATE deliveries SET status = ?, call_sid = COALESCE(?, call_sid), answered_at = CASE WHEN ? = \'answered\' THEN ? ELSE answered_at END WHERE id = ?')
     .run(status, callSid ?? null, status, Date.now(), id)
+}
+
+/** Scheduled (non-manual) deliveries in a local month — the accountability record */
+export function monthDeliveryStatuses(userId: string, month: string): string[] {
+  return (getDb().prepare("SELECT status FROM deliveries WHERE user_id = ? AND kind != 'manual' AND date LIKE ? ORDER BY created_at").all(userId, `${month}-%`) as Row[])
+    .map((r) => r.status as string)
+}
+
+/** A scheduled call nobody answered within the window counts as missed */
+export function expireUnanswered(olderThanMs: number): number {
+  const cutoff = Date.now() - olderThanMs
+  const r = getDb()
+    .prepare("UPDATE deliveries SET status = 'missed' WHERE kind != 'manual' AND status IN ('pending', 'sent') AND created_at < ?")
+    .run(cutoff)
+  return Number(r.changes)
 }
 
 export function listDeliveries(userId: string, limit = 20): Delivery[] {

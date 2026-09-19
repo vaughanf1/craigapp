@@ -16,6 +16,7 @@ const SignIn = lazy(() => import('./pages/SignIn'))
 const Call = lazy(() => import('./pages/app/Call'))
 const Memory = lazy(() => import('./pages/app/Memory'))
 const PlanIntro = lazy(() => import('./pages/app/PlanIntro'))
+const WarMapPage = lazy(() => import('./pages/app/WarMapPage'))
 
 // Single-file (artifact) builds have no server to handle path routing
 const Router = import.meta.env.MODE === 'artifact' ? HashRouter : BrowserRouter
@@ -62,6 +63,7 @@ export default function App() {
                 <Route path="coach" element={<CoachChat />} />
                 <Route path="goal" element={<GoalPlan />} />
                 <Route path="memory" element={<Memory />} />
+                <Route path="map" element={<WarMapPage />} />
                 <Route path="settings" element={<Settings />} />
               </Route>
               <Route path="*" element={<Landing />} />

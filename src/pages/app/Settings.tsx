@@ -7,6 +7,7 @@ import { api } from '../../lib/api'
 import { Card, Disclaimer, Rise } from '../../components/ui'
 import CoachPicker from '../../components/CoachPicker'
 import CallSettings from '../../components/CallSettings'
+import { AccountabilityTile } from '../../components/Accountability'
 import type { VoiceAccent } from '../../lib/types'
 
 export default function Settings() {
@@ -76,6 +77,12 @@ export default function Settings() {
       <Rise delay={0.08}>
         <CallSettings />
       </Rise>
+
+      {online && (
+        <Rise delay={0.09}>
+          <AccountabilityTile detailed />
+        </Rise>
+      )}
 
       <Rise delay={0.1}>
         <Card className="divide-y divide-black/5 p-0">

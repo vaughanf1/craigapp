@@ -32,9 +32,10 @@ const profile = {
 
 let token = ''
 
-beforeAll(() => {
+beforeAll(async () => {
   useDb(openDb(':memory:'))
   setClientForTests(fakeClient)
+  ;(await import('../src/coach/warmap.ts')).setAutoBuild(false)
 })
 
 describe('sign-in', () => {
@@ -205,6 +206,87 @@ describe('the plan & progress', () => {
   })
 })
 
+describe('the war map & board', () => {
+  it('builds itself in the background once the plan exists, through the draft → board → revise loop', async () => {
+    const { buildWarMap } = await import('../src/coach/warmap.ts')
+    const user = repo.findUserByPhone('+447700900123')!
+    const draft = {
+      northStar: 'Craig at 11 stone on 1 January, buying a new suit.',
+      strategy: 'Three phases, each ending at a stop.',
+      phases: [
+        { name: 'Foundations', start: '2026-09-19', end: '2026-10-30', objective: 'Build the logging habit', keyResults: [{ text: 'First stop: 12 stone 2', metric: { label: 'Weight', target: 77, unit: 'kg' } }] },
+        { name: 'The push', start: '2026-10-31', end: '2099-10-30', objective: 'Get to goal', keyResults: [{ text: 'Goal weight', metric: { label: 'Weight', target: 70, unit: 'kg' } }] },
+      ],
+      tasks: [
+        { phase: 1, title: 'Clear the biscuit tin', detail: 'Out of sight.', due: '2026-09-21', effort: 'S' },
+        { phase: 1, title: 'Tell Terry the goal', detail: 'Accountability.', due: '2026-09-22', effort: 'S' },
+        { phase: 1, title: 'Buy bathroom scales', detail: 'Weekly weigh-ins.', due: '2026-09-23', effort: 'S' },
+        { phase: 1, title: 'Book a walking route', detail: 'Same loop daily.', due: '2026-09-24', effort: 'S' },
+        { phase: 2, title: 'Try on the old suit', detail: 'Proof.', due: null, effort: 'S' },
+        { phase: 2, title: 'Plan Christmas food', detail: 'Reduce not ban.', due: '2026-12-15', effort: 'M' },
+      ],
+      risks: [{ risk: 'Office cake', mitigation: 'One slice, Fridays only.' }],
+    }
+    parseMock
+      .mockResolvedValueOnce({ parsed_output: draft })                                                      // draft 1
+      .mockResolvedValueOnce({ parsed_output: { score: 6, verdict: 'Too vague after October.', issues: ['Phase 2 has no tasks in the first two weeks'] } }) // review 1
+      .mockResolvedValueOnce({ parsed_output: { ...draft, tasks: [...draft.tasks, { phase: 2, title: 'Book November PT session', detail: 'Momentum.', due: '2026-11-02', effort: 'M' }] } }) // revision
+      .mockResolvedValueOnce({ parsed_output: { score: 9, verdict: 'Ready.', issues: [] } })                // review 2
+    const { map, tasks } = await buildWarMap(user)
+    expect(map.source).toBe('coach')
+    expect(map.buildLog.map((b) => b.score)).toEqual([6, 9])
+    expect(map.phases).toHaveLength(2)
+    expect(tasks).toHaveLength(7)
+    expect(tasks.find((t) => t.title === 'Book November PT session')!.phaseId).toBe('p2')
+
+    const r = await (await api('/coach/warmap', {}, token)).json() as any
+    expect(r.status).toBe('ready')
+    expect(r.map.northStar).toContain('11 stone')
+  })
+
+  it('the coach sees the board and the phase on every call', async () => {
+    createMock.mockResolvedValueOnce({ stop_reason: 'end_turn', content: [{ type: 'text', text: 'ok' }] })
+    await api('/coach/message', { method: 'POST', body: JSON.stringify({ text: 'What should I do this week?' }) }, token)
+    const ctx = createMock.mock.calls.at(-1)![0].system[1].text
+    expect(ctx).toContain('THE WAR MAP')
+    expect(ctx).toContain('Current phase: Foundations')
+    expect(ctx).toMatch(/This week:\n- \[\S+\] Clear the biscuit tin \(due 2026-09-21\)/)
+  })
+
+  it('what they say on a call ticks tasks and adds new ones', async () => {
+    const before = await (await api('/coach/warmap', {}, token)).json() as any
+    const tin = before.tasks.find((t: any) => t.title === 'Clear the biscuit tin')
+    createMock.mockResolvedValueOnce({ stop_reason: 'end_turn', content: [{ type: 'text', text: 'Great.' }] })
+    await api('/coach/message', { method: 'POST', body: JSON.stringify({ text: 'Biscuit tin is gone, and I will book the dentist on Friday', channel: 'call' }) }, token)
+    parseMock.mockResolvedValueOnce({ parsed_output: { add: [], archive: [], day: null, actionsDone: [], actionsMissed: [], weighIn: null, tasksDone: [tin.id], newTasks: [{ title: 'Book the dentist', detail: 'He said Friday.', due: '2026-09-25' }] } })
+    await remember(repo.findUserByPhone('+447700900123')!.id)
+    const after = await (await api('/coach/warmap', {}, token)).json() as any
+    expect(after.tasks.find((t: any) => t.id === tin.id).status).toBe('done')
+    const dentist = after.tasks.find((t: any) => t.title === 'Book the dentist')
+    expect(dentist).toMatchObject({ source: 'coach', due: '2026-09-25', phaseId: 'p1' })
+  })
+
+  it('the person can add, tick and remove tasks', async () => {
+    const created = await (await api('/coach/tasks', { method: 'POST', body: JSON.stringify({ title: 'Buy running shoes', due: '2026-09-27' }) }, token)).json() as any
+    expect(created.source).toBe('user')
+    const done = await (await api(`/coach/tasks/${created.id}`, { method: 'PUT', body: JSON.stringify({ status: 'done' }) }, token)).json() as any
+    expect(done.doneAt).toBeTruthy()
+    expect((await api(`/coach/tasks/${created.id}`, { method: 'DELETE' }, token)).status).toBe(200)
+  })
+
+  it('a rebuild keeps coach/user tasks and done ones, replacing only open plan tasks', async () => {
+    const { buildWarMap } = await import('../src/coach/warmap.ts')
+    parseMock.mockRejectedValueOnce(new Error('no key')) // local fallback
+    const { map, tasks } = await buildWarMap(repo.findUserByPhone('+447700900123')!)
+    expect(map.source).toBe('local')
+    expect(map.version).toBe(2)
+    expect(map.buildLog).toEqual([])
+    expect(tasks.some((t) => t.title === 'Book the dentist')).toBe(true)         // coach-added kept
+    expect(tasks.some((t) => t.title === 'Clear the biscuit tin')).toBe(true)    // done kept
+    expect(tasks.some((t) => t.title === 'Tell Terry the goal')).toBe(false)     // open plan task replaced
+  })
+})
+
 describe('adaptive re-planning', () => {
   it('a manual review adjusts the plan and logs why', async () => {
     parseMock.mockResolvedValueOnce({
@@ -331,6 +413,30 @@ describe('deliveries — the call', () => {
     const vm = await app.request(`/twilio/voice/${d2.id}`, { method: 'POST', body: new URLSearchParams({ CallSid: 'CA2', AnsweredBy: 'machine_start' }) })
     expect(await vm.text()).toContain('<Hangup/>')
     expect((await (await api(`/coach/deliveries/${d2.id}`, {}, token)).json() as any).status).toBe('missed')
+  })
+})
+
+describe('accountability tally', () => {
+  it('unanswered scheduled calls expire to missed, and the coach knows the tally', async () => {
+    const user = repo.findUserByPhone('+447700900123')!
+    const db = (await import('../src/lib/db.ts')).getDb()
+    const month = localParts(user.timezone).date.slice(0, 7)
+    // five scheduled calls this month: 1 answered, 1 missed, 3 sent long ago
+    const rows = [['answered', 0], ['missed', 0], ['sent', 3 * 3600_000], ['sent', 3 * 3600_000], ['sent', 10 * 60_000]] as const
+    rows.forEach(([status, age], i) => {
+      db.prepare("INSERT INTO deliveries (id, user_id, date, slot, kind, brief, channels_json, status, created_at) VALUES (?, ?, ?, ?, 'morning', 'b', '[\"call\"]', ?, ?)")
+        .run(`acc${i}`, user.id, `${month}-0${i + 1}`, `0${i}:00`, status, Date.now() - age)
+    })
+    expect(repo.expireUnanswered(2 * 3600_000)).toBe(2)
+    const a = await (await api('/me/accountability', {}, token)).json() as any
+    expect(a).toMatchObject({ month, answered: 1, missed: 3, missesUntilPenalty: 2, nextMonthPence: 1999 })
+    expect(a.pending).toBeGreaterThanOrEqual(1)
+
+    createMock.mockResolvedValueOnce({ stop_reason: 'end_turn', content: [{ type: 'text', text: 'ok' }] })
+    await api('/coach/message', { method: 'POST', body: JSON.stringify({ text: 'hi' }) }, token)
+    const ctx = createMock.mock.calls.at(-1)![0].system[1].text
+    expect(ctx).toContain('CALLS THIS MONTH: 1 answered, 3 missed')
+    expect(ctx).toContain("2 more missed calls and next month's price goes up")
   })
 })
 

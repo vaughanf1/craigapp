@@ -6,6 +6,8 @@ import { env } from '../lib/env.ts'
 import { requireUser, type Env } from './middleware.ts'
 import { publicUser } from './auth.ts'
 import { getCoach } from '../../../shared/coaches.ts'
+import { accountability } from '../../../shared/pricing.ts'
+import { localParts } from '../lib/time.ts'
 
 const app = new Hono<Env>()
 app.use('*', requireUser)
@@ -112,6 +114,13 @@ app.delete('/food/:id', (c) => {
   return c.json({ ok: true })
 })
 
+/** This month's answered/missed tally and what it does to next month's price */
+app.get('/accountability', (c) => {
+  const u = c.get('user')
+  const month = localParts(u.timezone).date.slice(0, 7)
+  return c.json(accountability(month, repo.monthDeliveryStatuses(u.id, month)))
+})
+
 app.get('/schedule', (c) => c.json(repo.getSchedule(c.get('user').id)))
 
 app.put('/schedule', async (c) => {
@@ -135,6 +144,8 @@ app.get('/export', (c) => {
     messages: repo.recentMessages(u.id, 5000),
     memories: repo.listMemories(u.id),
     days: repo.listSummaries(u.id, 3650),
+    warmap: repo.getWarMap(u.id).map,
+    tasks: repo.listTasks(u.id),
     schedule: repo.getSchedule(u.id),
   })
 })

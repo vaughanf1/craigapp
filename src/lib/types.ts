@@ -23,7 +23,8 @@ export type VoiceAccent = 'british' | 'american'
 
 export type { Coach, CoachGender, CoachAgeBand } from '../../shared/coaches.ts'
 import type { Roadmap } from '../../shared/roadmap.ts'
-export type { Roadmap }
+import type { Task, WarMap } from '../../shared/warmap.ts'
+export type { Roadmap, Task, WarMap }
 
 /** Craig's 7-step goal framework */
 export interface GoalPlan {
@@ -113,6 +114,8 @@ export interface AppState {
   chat: ChatMessage[]
   weighIns: WeighIn[]
   actionLog: ActionLog[]
+  warmap: WarMap | null
+  tasks: Task[]
   /** Present when signed in to a Be More server */
   session: Session | null
 }

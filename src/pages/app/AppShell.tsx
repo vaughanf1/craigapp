@@ -4,7 +4,7 @@ import { useStore } from '../../lib/store'
 const TABS = [
   { to: '/app', label: 'Today', icon: '☀️', end: true },
   { to: '/app/coach', label: 'Coach', icon: '💬', end: false },
-  { to: '/app/memory', label: 'Memory', icon: '🧠', end: false },
+  { to: '/app/map', label: 'Map', icon: '🗺️', end: false },
   { to: '/app/goal', label: 'Goal', icon: '🎯', end: false },
   { to: '/app/settings', label: 'Settings', icon: '⚙️', end: false },
 ]

@@ -18,7 +18,15 @@ towards whatever goal you're chasing.
 3. **It re-plans itself.** A nightly review compares progress to the current stop and adjusts the plan —
    a nearer stop when behind, easier actions when they're slipping — and the coach explains the change
    on the next morning call. Every revision is logged on the Goal page.
-4. **Real coaches, not emoji.** Eight video avatars (woman/man × 20s–50s), filterable in the picker, each with
+4. **A war map, built in a loop.** Above the daily plan sits a strategic map for the rest of the year:
+   phases with objectives and measurable key results, and a board of one-off tasks. The coach drafts it,
+   a "board" critiques it (reverse-engineered? measurable? first two weeks concrete?), and it's revised until
+   it passes — the review log is visible. Tasks you commit to on a call land on the board; saying you've done
+   one ticks it. All automatic.
+5. **Accountability pricing.** Every unanswered call is logged. Miss more than the grace allowance in a month
+   and next month costs more (capped); answer 90%+ and it costs less. Stated on the deal screen; the coach
+   knows the tally. (Charging it needs Stripe — the rule and the tally are built.)
+6. **Real coaches, not emoji.** Eight video avatars (woman/man × 20s–50s), filterable in the picker, each with
    an intro clip. The call screen puts them on camera.
 
 ## Features

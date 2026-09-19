@@ -9,6 +9,7 @@ import { speak, stopSpeaking } from '../../lib/coach'
 import { CoachFace } from '../../components/CoachFace'
 import { RoadmapTimeline, DailyActions } from '../../components/Roadmap'
 import { Card, PrimaryButton } from '../../components/ui'
+import { pricingRule } from '../../lib/pricing'
 
 /**
  * Right after onboarding: the coach reverse-engineers the goal into a plan,
@@ -118,6 +119,14 @@ export default function PlanIntro() {
                 </ul>
               </Card>
               <DailyActions roadmap={roadmap} title="Every day" />
+              <Card className="p-5">
+                <p className="font-semibold">Next: the war map</p>
+                <p className="mt-1 text-sm leading-relaxed text-ink-secondary">
+                  {online
+                    ? `${coach.name} is now drafting the rest of your year — phases, key results and a board of tasks — and putting it through a tough review before you see it. It'll be on the Map tab in a minute or two.`
+                    : `The Map tab lays this out across the rest of the year with a board of tasks.`}
+                </p>
+              </Card>
             </motion.div>
           )}
 
@@ -152,6 +161,13 @@ export default function PlanIntro() {
                     />
                   </div>
                 ))}
+              </Card>
+              <Card className="p-5">
+                <p className="font-semibold">The price is the accountability</p>
+                <p className="mt-1 text-sm leading-relaxed text-ink-secondary">{pricingRule()}</p>
+                <p className="mt-2 text-sm leading-relaxed text-ink-secondary">
+                  Every unanswered call is logged. You'll always see the tally and what next month costs.
+                </p>
               </Card>
               {!online && (
                 <p className="text-center text-sm text-ink-secondary">
