@@ -10,8 +10,9 @@ export const env = {
   dbPath: e.DB_PATH ?? './data/bemore.sqlite',
   /** Public URL of this server — Twilio needs it for webhooks */
   publicUrl: (e.PUBLIC_URL ?? `http://localhost:${e.PORT ?? 8787}`).replace(/\/$/, ''),
-  /** Public URL of the web app — used in push payloads and CORS */
-  appUrl: (e.APP_URL ?? 'http://localhost:5173').replace(/\/$/, ''),
+  /** Public URL(s) of the web app, comma-separated — the first is used in push links, all for CORS */
+  appUrl: (e.APP_URL ?? 'http://localhost:5173').split(',')[0].trim().replace(/\/$/, ''),
+  appUrls: (e.APP_URL ?? 'http://localhost:5173'),
   sessionSecret: e.SESSION_SECRET ?? 'dev-secret-change-me',
   /** Fixed OTP accepted in development when Twilio Verify is not configured */
   devOtp: e.DEV_OTP ?? '123456',

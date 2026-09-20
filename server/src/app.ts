@@ -12,12 +12,12 @@ import twilio from './routes/twilio.ts'
 export function createApp() {
   const app = new Hono()
   if (!env.isProd) app.use('*', logger())
-  // APP_URL may include a path (GitHub Pages serves under /craigapp) — CORS matches the origin only
-  const appOrigin = (() => { try { return new URL(env.appUrl).origin } catch { return env.appUrl } })()
+  // APP_URL may list several apps (comma-separated) and include paths (GitHub Pages serves under /craigapp) — CORS matches origins
+  const appOrigins = env.appUrls.split(',').map((u) => { try { return new URL(u.trim()).origin } catch { return u.trim() } })
   app.use('*', cors({
     origin: (origin) => {
-      if (!origin) return appOrigin
-      if (origin === appOrigin || /^http:\/\/localhost(:\d+)?$/.test(origin)) return origin
+      if (!origin) return appOrigins[0]
+      if (appOrigins.includes(origin) || /^http:\/\/localhost(:\d+)?$/.test(origin)) return origin
       return null
     },
     allowHeaders: ['Authorization', 'Content-Type'],
