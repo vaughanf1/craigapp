@@ -1,3 +1,4 @@
+/// <reference types="vitest/config" />
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
@@ -8,6 +9,8 @@ import pkg from './package.json' with { type: 'json' }
 // `--mode artifact` produces a fully inlined single-file build (hash routing,
 // everything embedded, no service worker) for running as a self-contained page.
 export default defineConfig(({ mode }) => ({
+  // The server has its own vitest run (npm run test:server) with its own dependencies
+  test: { exclude: ['**/node_modules/**', 'dist/**', 'server/**'] },
   define: {
     __APP_VERSION__: JSON.stringify(pkg.version),
   },
