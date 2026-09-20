@@ -6,6 +6,9 @@ towards whatever goal you're chasing.
 
 > "You can change who you are, and where you are, by changing what goes into your mind." — Zig Ziglar
 
+**Live:** app at https://web-production-19e1dd.up.railway.app · API at https://api-production-6d7fe.up.railway.app
+(sign-in code is `123456` until Twilio Verify is configured). See SETUP.md.
+
 ## What makes it different
 
 1. **Your coach rings you.** A scheduler on the server generates a personalised brief at your chosen times

@@ -60,9 +60,10 @@ Settings screen says so.
 
 ## 4. Deploy
 
-**Already done (Railway):** the API runs at `https://api-production-6d7fe.up.railway.app`
-(project `bemore-api`, service `api`, SQLite on a 5 GB volume at `/data`). Redeploy with
-`npm run deploy:api`. Set secrets with `railway variables -s api --set KEY=value`
+**Already done (Railway, project `bemore-api`):**
+- Web app: `https://web-production-19e1dd.up.railway.app` (service `web`; redeploy with `railway up --service web`)
+- API: `https://api-production-6d7fe.up.railway.app` (service `api`, SQLite on a 5 GB volume at `/data`; redeploy with `npm run deploy:api`)
+- `DEV_OTP=123456` is set on the API so people can sign in before Twilio Verify exists — remove it once Verify is on. Set secrets with `railway variables -s api --set KEY=value`
 (then it redeploys itself). The Pages build points at it by default.
 
 Note: Railway's builder failed silently on Dockerfile builds here, so the service uses
