@@ -24,7 +24,7 @@ export async function requestCode(phone: string): Promise<{ dev: boolean }> {
     await sendVerification(phone)
     return { dev: false }
   }
-  const code = env.isProd ? String(randomInt(100000, 999999)) : env.devOtp
+  const code = env.devOtp || String(randomInt(100000, 999999))
   getDb()
     .prepare('INSERT INTO otps (phone, code, expires_at, attempts) VALUES (?, ?, ?, 0) ON CONFLICT(phone) DO UPDATE SET code = excluded.code, expires_at = excluded.expires_at, attempts = 0')
     .run(phone, sha256(code), Date.now() + 10 * 60_000)

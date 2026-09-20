@@ -14,8 +14,8 @@ export const env = {
   appUrl: (e.APP_URL ?? 'http://localhost:5173').split(',')[0].trim().replace(/\/$/, ''),
   appUrls: (e.APP_URL ?? 'http://localhost:5173'),
   sessionSecret: e.SESSION_SECRET ?? 'dev-secret-change-me',
-  /** Fixed OTP accepted in development when Twilio Verify is not configured */
-  devOtp: e.DEV_OTP ?? '123456',
+  /** Fixed sign-in code used when Twilio Verify is not configured. Set explicitly in production for demos; unset → random codes logged server-side. */
+  devOtp: e.DEV_OTP ?? (e.NODE_ENV === 'production' ? '' : '123456'),
 
   twilio: {
     accountSid: e.TWILIO_ACCOUNT_SID ?? '',
