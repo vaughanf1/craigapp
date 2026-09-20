@@ -335,7 +335,16 @@ describe('adaptive re-planning', () => {
     const db = (await import('../src/lib/db.ts')).getDb()
     db.prepare("UPDATE plan_reviews SET date = ? WHERE user_id = ?").run('2020-01-01', user.id)
     const { reviewsDue } = await import('../src/scheduler.ts')
-    const at3am = (() => { const d = new Date(); d.setHours(3, 0, 0, 0); return d })()
+    // 03:00 in the user's timezone, whatever the machine's timezone is (CI runs in UTC)
+    const at3am = (() => {
+      const d = new Date()
+      d.setUTCMinutes(0, 0, 0)
+      for (let i = 0; i < 48; i++) {
+        if (localParts(user.timezone, d).time === '03:00') return d
+        d.setUTCHours(d.getUTCHours() - 1)
+      }
+      throw new Error('no 03:00 found')
+    })()
     const due = reviewsDue(repo.allUsersWithSchedules(), at3am)
     expect(due.map((d) => d.trigger)).toEqual(['weekly'])
     const at4am = new Date(at3am.getTime() + 3600_000)
