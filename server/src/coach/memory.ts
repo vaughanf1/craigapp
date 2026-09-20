@@ -5,6 +5,7 @@ import * as repo from '../lib/repo.ts'
 import { localParts } from '../lib/time.ts'
 import { buildContext } from './context.ts'
 import { currentPhase } from '../../../shared/warmap.ts'
+import { INTAKE_FIELDS } from './intake.ts'
 
 /**
  * The memory engine. Every conversation is mined for durable facts about the
@@ -29,6 +30,10 @@ const MemoryUpdate = z.object({
   actionsDone: z.array(z.string()).describe('IDs of daily actions (from the list) they said they completed today'),
   actionsMissed: z.array(z.string()).describe('IDs of daily actions they said they did NOT do today'),
   weighIn: z.number().nullable().describe('If they stated their current weight today, in kg (convert stone/lbs); otherwise null'),
+  discovery: z.array(z.object({
+    field: z.enum(INTAKE_FIELDS.map((f) => f.id) as [string, ...string[]]),
+    answer: z.string().describe('Their answer in one or two sentences, third person, specific'),
+  })).describe('Discovery fields this conversation answered (fully or usefully). Only fields genuinely addressed.'),
   tasksDone: z.array(z.string()).describe('IDs of board tasks they said they have completed'),
   newTasks: z.array(z.object({
     title: z.string().describe('Imperative, under 10 words'),
@@ -71,6 +76,10 @@ Their goal: ${user.profile.plan.statement}
 Today (their local date): ${date}
 Today's food log: ${ctx.todayFood.map((f) => `${f.label} ${f.calories}`).join(', ') || 'nothing logged'}${user.profile.calorieTarget ? ` (target ${user.profile.calorieTarget})` : ''}
 
+Discovery fields (id: meaning) — fill any this conversation answers:
+${INTAKE_FIELDS.map((f) => `${f.id}: ${f.label} — ${f.ask}`).join('\n')}
+Already known: ${Object.keys(repo.listIntake(userId)).join(', ') || '(none)'}
+
 Board tasks (id: title, due) — mark done if they say so; add new ones they commit to:
 ${repo.listTasks(userId).filter((t) => t.status !== 'done' && t.status !== 'skipped').map((t) => `${t.id}: ${t.title}${t.due ? `, due ${t.due}` : ''}`).join('\n') || '(empty)'}
 
@@ -107,6 +116,7 @@ ${existing.map((m) => `${m.id}: [${m.kind}] ${m.text}`).join('\n') || '(none)'}`
   for (const id of out.actionsDone) if (actionIds.has(id)) repo.setAction(userId, { date, actionId: id, done: true })
   for (const id of out.actionsMissed) if (actionIds.has(id)) repo.setAction(userId, { date, actionId: id, done: false })
   if (out.weighIn && out.weighIn > 20 && out.weighIn < 400) repo.upsertWeighIn(userId, { date, kg: out.weighIn })
+  for (const d of out.discovery ?? []) if (d.answer.trim()) repo.setIntake(userId, d.field, d.answer.trim())
   const openTasks = new Set(repo.listTasks(userId).filter((t) => t.status === 'todo' || t.status === 'doing').map((t) => t.id))
   for (const id of out.tasksDone ?? []) if (openTasks.has(id)) repo.updateTask(userId, id, { status: 'done' })
   const phase = repo.getWarMap(userId).map ? currentPhase(repo.getWarMap(userId).map!, date) : null

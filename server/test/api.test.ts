@@ -416,6 +416,33 @@ describe('deliveries — the call', () => {
   })
 })
 
+describe('guided discovery', () => {
+  it('the coach is told what it still needs to learn and asks one question per call', async () => {
+    createMock.mockResolvedValueOnce({ stop_reason: 'end_turn', content: [{ type: 'text', text: 'ok' }] })
+    await api('/coach/message', { method: 'POST', body: JSON.stringify({ text: 'Morning' }) }, token)
+    const ctx = createMock.mock.calls.at(-1)![0].system[1].text
+    expect(ctx).toContain('DISCOVERY')
+    expect(ctx).toContain('Still to learn (11)')
+    expect(ctx).toContain('ask ONE question to learn: why this goal, really')
+    expect(createMock.mock.calls.at(-1)![0].system[0].text).toContain('Diagnose before you prescribe')
+  })
+  it('answers are stored and the next question moves on', async () => {
+    createMock.mockResolvedValueOnce({ stop_reason: 'end_turn', content: [{ type: 'text', text: 'Thanks.' }] })
+    await api('/coach/message', { method: 'POST', body: JSON.stringify({ text: "Honestly it's my daughter's wedding in June, I want to look at the photos without wincing", channel: 'call' }) }, token)
+    parseMock.mockResolvedValueOnce({ parsed_output: { add: [], archive: [], day: null, actionsDone: [], actionsMissed: [], weighIn: null, tasksDone: [], newTasks: [], discovery: [{ field: 'why', answer: "His daughter's wedding in June — he wants to look at the photos without wincing." }] } })
+    await remember(repo.findUserByPhone('+447700900123')!.id)
+    const mem = await (await api('/coach/memory', {}, token)).json() as any
+    expect(mem.intake.why).toContain('wedding')
+
+    createMock.mockResolvedValueOnce({ stop_reason: 'end_turn', content: [{ type: 'text', text: 'ok' }] })
+    await api('/coach/message', { method: 'POST', body: JSON.stringify({ text: 'Morning' }) }, token)
+    const ctx = createMock.mock.calls.at(-1)![0].system[1].text
+    expect(ctx).toContain("- Why this goal, really: His daughter's wedding")
+    expect(ctx).toContain('Still to learn (10)')
+    expect(ctx).toContain('ask ONE question to learn: what success looks like')
+  })
+})
+
 describe('accountability tally', () => {
   it('unanswered scheduled calls expire to missed, and the coach knows the tally', async () => {
     const user = repo.findUserByPhone('+447700900123')!

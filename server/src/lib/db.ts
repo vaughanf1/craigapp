@@ -84,6 +84,13 @@ CREATE TABLE IF NOT EXISTS memories (
   archived INTEGER NOT NULL DEFAULT 0
 );
 CREATE INDEX IF NOT EXISTS memories_user ON memories(user_id, archived);
+CREATE TABLE IF NOT EXISTS intake (
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  field TEXT NOT NULL,
+  answer TEXT NOT NULL,
+  updated_at INTEGER NOT NULL,
+  PRIMARY KEY (user_id, field)
+);
 CREATE TABLE IF NOT EXISTS day_summaries (
   user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   date TEXT NOT NULL,

@@ -17,7 +17,7 @@ export type BriefContent = z.infer<typeof Brief>
 const INSTRUCTIONS: Record<DeliveryKind, string> = {
   morning: `It's the MORNING CALL. Structure: (1) greet by name, (2) yesterday in one sentence with real numbers — calories vs target, actions ticked, or the check-in — and if they missed, say plainly we are not making up for it, (3) where they stand against the current stop on the plan (days left, on track or behind — say it kindly and specifically), (4) today's daily actions, named, and the one that matters most — plus any board task due today or overdue, (5) one question that invites a reply.`,
   evening: `It's the EVENING REVIEW. Structure: (1) greet, (2) executive summary of today in real numbers — what they logged, which daily actions they ticked and which they didn't, (3) ask directly about any action not ticked and any board task due this week — did they do it? (their answer will be recorded, and anything they commit to becomes a task), (4) tomorrow's one focus, tied to the current stop on the plan, (5) wish them a good evening.`,
-  manual: `They asked you to call them right now. Greet warmly, say something specific about where they are today, and ask what's on their mind.`,
+  manual: `They asked you to call them right now — or this is the very first call. If DISCOVERY shows nothing known yet, this call is the introduction: say who you are in one line, what the deal is (morning and evening, real numbers, no lectures), then ask the single discovery question named in DISCOVERY and stop. Otherwise: Greet warmly, say something specific about where they are today, and ask what's on their mind.`,
 }
 
 /** Generate the personalised brief for a scheduled call/notification. */

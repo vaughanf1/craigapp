@@ -325,6 +325,19 @@ export function archiveMemory(userId: string, id: string) {
   getDb().prepare('UPDATE memories SET archived = 1, updated_at = ? WHERE id = ? AND user_id = ?').run(Date.now(), id, userId)
 }
 
+/* ---------- discovery intake: the ever-growing picture of the person ---------- */
+
+export function listIntake(userId: string): Record<string, string> {
+  const rows = getDb().prepare('SELECT field, answer FROM intake WHERE user_id = ?').all(userId) as Row[]
+  return Object.fromEntries(rows.map((r) => [r.field as string, r.answer as string]))
+}
+
+export function setIntake(userId: string, field: string, answer: string) {
+  getDb()
+    .prepare('INSERT INTO intake (user_id, field, answer, updated_at) VALUES (?, ?, ?, ?) ON CONFLICT(user_id, field) DO UPDATE SET answer = excluded.answer, updated_at = excluded.updated_at')
+    .run(userId, field, answer, Date.now())
+}
+
 /* ---------- day summaries ---------- */
 
 function toSummary(r: Row): DaySummary {

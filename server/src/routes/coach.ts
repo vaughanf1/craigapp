@@ -143,7 +143,7 @@ app.get('/reviews', (c) => {
 
 app.get('/memory', (c) => {
   const u = c.get('user')
-  return c.json({ memories: repo.listMemories(u.id), days: repo.listSummaries(u.id, 30) })
+  return c.json({ memories: repo.listMemories(u.id), days: repo.listSummaries(u.id, 30), intake: repo.listIntake(u.id) })
 })
 
 app.delete('/memory/:id', (c) => {

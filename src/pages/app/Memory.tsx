@@ -15,6 +15,19 @@ const KIND_LABEL: Record<MemoryItem['kind'], string> = {
   win: 'Wins',
   struggle: 'Struggles',
 }
+const INTAKE = [
+  { id: 'why', label: 'Why this goal, really' },
+  { id: 'success', label: 'What success looks like' },
+  { id: 'baseline', label: 'Where you are now' },
+  { id: 'tried', label: 'What you\'ve tried before' },
+  { id: 'failure_pattern', label: 'What usually derails you' },
+  { id: 'avoiding', label: 'What you\'re avoiding' },
+  { id: 'constraints', label: 'Constraints' },
+  { id: 'resources', label: 'Resources' },
+  { id: 'competing', label: 'Competing priorities' },
+  { id: 'environment', label: 'Environment' },
+  { id: 'standard', label: 'Your standard' },
+]
 const KIND_ORDER: MemoryItem['kind'][] = ['event', 'struggle', 'pattern', 'preference', 'fact', 'win']
 
 /**
@@ -28,6 +41,7 @@ export default function Memory() {
   const coach = getCoach(profile.coachId)
   const [memories, setMemories] = useState<MemoryItem[] | null>(null)
   const [days, setDays] = useState<DaySummary[]>([])
+  const [intake, setIntake] = useState<Record<string, string>>({})
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -37,6 +51,7 @@ export default function Memory() {
       .then((r) => {
         setMemories(r.memories)
         setDays([...r.days].reverse())
+        setIntake(r.intake ?? {})
       })
       .catch(() => setError("Couldn't load memory right now."))
   }, [online])
@@ -82,6 +97,26 @@ export default function Memory() {
         <Rise delay={0.05}>
           <Card className="p-5 text-sm leading-relaxed text-ink-secondary">
             Nothing yet. Have a proper chat with {coach.name} — or answer a call — and this page fills up.
+          </Card>
+        </Rise>
+      )}
+
+      {online && memories && (
+        <Rise delay={0.05}>
+          <Card className="p-5">
+            <h2 className="font-semibold">The picture {coach.name} is building</h2>
+            <p className="mt-0.5 text-sm text-ink-secondary">One question per call until it's complete.</p>
+            <ul className="mt-3 space-y-2">
+              {INTAKE.map((f) => (
+                <li key={f.id} className="flex items-start gap-3 text-[15px] leading-relaxed">
+                  <span className={`mt-2 h-1.5 w-1.5 shrink-0 rounded-full ${intake[f.id] ? 'bg-leaf' : 'bg-black/15'}`} />
+                  <span>
+                    <span className="font-medium">{f.label}</span>
+                    {intake[f.id] ? <span className="text-ink-secondary"> — {intake[f.id]}</span> : <span className="text-ink-secondary"> — not yet</span>}
+                  </span>
+                </li>
+              ))}
+            </ul>
           </Card>
         </Rise>
       )}

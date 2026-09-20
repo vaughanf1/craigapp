@@ -173,7 +173,7 @@ export const api = {
     delivery: (id: string) => request<Delivery>(`/coach/deliveries/${id}`),
     answer: (id: string) => post<{ ok: true; brief: string }>(`/coach/deliveries/${id}/answer`),
     missed: (id: string) => post<{ ok: true }>(`/coach/deliveries/${id}/missed`),
-    memory: () => request<{ memories: Memory[]; days: DaySummary[] }>('/coach/memory'),
+    memory: () => request<{ memories: Memory[]; days: DaySummary[]; intake: Record<string, string> }>('/coach/memory'),
     forget: (id: string) => del<{ ok: true }>(`/coach/memory/${id}`),
     refreshMemory: () => post<{ added: number; archived: number }>('/coach/memory/refresh'),
   },

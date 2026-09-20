@@ -46,6 +46,7 @@ export function buildContext(user: repo.User): CoachContext {
     localTime: time,
     streak: currentStreak(checkIns, today),
     planUpdate: repo.unexplainedReview(user.id),
+    intake: repo.listIntake(user.id),
     accountability: accountability(today.slice(0, 7), repo.monthDeliveryStatuses(user.id, today.slice(0, 7))),
     warmap: repo.getWarMap(user.id).map,
     tasks: repo.listTasks(user.id),
