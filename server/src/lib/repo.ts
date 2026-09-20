@@ -119,7 +119,7 @@ export function setAction(userId: string, a: ActionLog) {
 
 /* ---------- war map & task board ---------- */
 
-import type { Task, WarMap } from '../../../shared/warmap.ts'
+import type { Task, WarMap } from '../../shared/warmap.ts'
 
 export interface StoredWarMap { map: WarMap | null; status: 'building' | 'ready' | 'failed' | 'none'; progress: string; updatedAt: number }
 

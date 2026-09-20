@@ -4,7 +4,7 @@ import { anthropic, MODEL } from './client.ts'
 import * as repo from '../lib/repo.ts'
 import { localParts } from '../lib/time.ts'
 import { buildContext } from './context.ts'
-import { currentPhase } from '../../../shared/warmap.ts'
+import { currentPhase } from '../../shared/warmap.ts'
 import { INTAKE_FIELDS } from './intake.ts'
 
 /**

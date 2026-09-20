@@ -3,7 +3,7 @@ import * as repo from '../lib/repo.ts'
 import { env } from '../lib/env.ts'
 import { twiml, validSignature } from '../lib/twilio.ts'
 import { reply } from '../coach/chat.ts'
-import { getCoach } from '../../../shared/coaches.ts'
+import { getCoach } from '../../shared/coaches.ts'
 
 /**
  * Real phone calls. Twilio dials the user; when they answer it POSTs here for

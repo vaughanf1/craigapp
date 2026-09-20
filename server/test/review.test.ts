@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { reviewTrigger, localReview, type Standing } from '../src/coach/review.ts'
-import { buildLocalRoadmap } from '../../shared/roadmap.ts'
+import { buildLocalRoadmap } from '../shared/roadmap.ts'
 
 const base: Standing = { daysToStop: 40, weight: null, actionRate: 0.8, daysWithData: 5, missedCalls7d: 0, daysSinceReview: 2 }
 const behindWeight = { targetKg: 77, expectedKg: 81, aheadKg: -1.6, daysLeft: 40, status: 'behind' as const }

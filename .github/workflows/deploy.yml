@@ -41,7 +41,7 @@ jobs:
       # Set the API_URL repository variable to point the app at a deployed server
       - run: npm run build -- --base=/craigapp/
         env:
-          VITE_API_URL: ${{ vars.API_URL }}
+          VITE_API_URL: ${{ vars.API_URL || 'https://api-production-6d7fe.up.railway.app' }}
       # SPA fallback so deep links like /craigapp/app resolve to the router
       - run: cp dist/index.html dist/404.html
       # Publishing to a gh-pages branch auto-enables Pages on public repos

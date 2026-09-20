@@ -2,7 +2,7 @@ import * as repo from '../lib/repo.ts'
 import { localParts, localDayRange, shiftDate } from '../lib/time.ts'
 import type { CoachContext } from './prompt.ts'
 import type { CheckIn } from '../lib/types.ts'
-import { accountability } from '../../../shared/pricing.ts'
+import { accountability } from '../../shared/pricing.ts'
 
 /** Consecutive check-in days ending today or yesterday, with one freeze per rolling week (mirrors the app) */
 export function currentStreak(checkIns: CheckIn[], today: string): number {

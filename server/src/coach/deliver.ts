@@ -1,4 +1,4 @@
-import { getCoach } from '../../../shared/coaches.ts'
+import { getCoach } from '../../shared/coaches.ts'
 import * as repo from '../lib/repo.ts'
 import { env } from '../lib/env.ts'
 import { sendPush } from '../lib/push.ts'

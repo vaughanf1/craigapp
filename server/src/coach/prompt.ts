@@ -1,11 +1,11 @@
-import { getCoach } from '../../../shared/coaches.ts'
+import { getCoach } from '../../shared/coaches.ts'
 import { AREA_NAMES, AREA_TONE, type UserProfile, type Memory, type DaySummary, type FoodEntry, type CheckIn } from '../lib/types.ts'
-import { formatWeight, halfwayKg } from '../../../shared/units.ts'
-import { currentMilestone, daysBetween, weightProgress } from '../../../shared/roadmap.ts'
+import { formatWeight, halfwayKg } from '../../shared/units.ts'
+import { currentMilestone, daysBetween, weightProgress } from '../../shared/roadmap.ts'
 import type { User } from '../lib/repo.ts'
 import type { ActionLog, WeighIn } from '../lib/types.ts'
-import { boardColumns, currentPhase, type Task, type WarMap } from '../../../shared/warmap.ts'
-import { pounds, type AccountabilityMonth } from '../../../shared/pricing.ts'
+import { boardColumns, currentPhase, type Task, type WarMap } from '../../shared/warmap.ts'
+import { pounds, type AccountabilityMonth } from '../../shared/pricing.ts'
 import { intakeBlock } from './intake.ts'
 
 export interface CoachContext {

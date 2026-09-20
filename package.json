@@ -11,7 +11,8 @@
     "test": "vitest run",
     "dev:server": "npm --prefix server run dev",
     "test:server": "npm --prefix server test",
-    "typecheck:server": "npm --prefix server run typecheck"
+    "typecheck:server": "npm --prefix server run typecheck",
+    "deploy:api": "railway up ./server --path-as-root --service api"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.111.0",

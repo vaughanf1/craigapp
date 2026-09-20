@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buildLocalRoadmap, currentMilestone, weightProgress } from '../../shared/roadmap.ts'
+import { buildLocalRoadmap, currentMilestone, weightProgress } from '../shared/roadmap.ts'
 
 const input = {
   statement: 'Get to 11 stone', targetDate: '2027-01-14', areaId: 'health', today: '2026-09-18',

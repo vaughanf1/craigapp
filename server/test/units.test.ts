@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { formatWeight, parseWeightToKg, halfwayKg } from '../../shared/units.ts'
+import { formatWeight, parseWeightToKg, halfwayKg } from '../shared/units.ts'
 import { localParts, shiftDate, localDayRange } from '../src/lib/time.ts'
 import { escapeXml, twiml } from '../src/lib/twilio.ts'
 import { normalisePhone } from '../src/lib/auth.ts'

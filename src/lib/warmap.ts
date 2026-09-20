@@ -1,2 +1,2 @@
-export { boardColumns, currentPhase, planningHorizon, addDays } from '../../shared/warmap.ts'
-export type { WarMap, Phase, Task, TaskStatus, KeyResult, BuildStep } from '../../shared/warmap.ts'
+export { boardColumns, currentPhase, planningHorizon, addDays } from '../../server/shared/warmap.ts'
+export type { WarMap, Phase, Task, TaskStatus, KeyResult, BuildStep } from '../../server/shared/warmap.ts'

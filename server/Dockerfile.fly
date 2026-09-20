@@ -1,0 +1,11 @@
+# Be More API — build context is the server/ directory. SQLite on a volume at /data.
+FROM node:22-alpine
+WORKDIR /app
+COPY package.json package-lock.json .npmrc ./
+RUN npm ci --omit=dev --no-audit --no-fund
+COPY shared ./shared
+COPY src ./src
+ENV NODE_ENV=production PORT=8787 DB_PATH=/data/bemore.sqlite
+VOLUME ["/data"]
+EXPOSE 8787
+CMD ["node", "--no-warnings=ExperimentalWarning", "src/index.ts"]

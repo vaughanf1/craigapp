@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { accountability, pricingRule, PRICING } from '../../shared/pricing.ts'
+import { accountability, pricingRule, PRICING } from '../shared/pricing.ts'
 
 const st = (answered: number, missed: number, pending = 0) => [
   ...Array(answered).fill('answered'), ...Array(missed).fill('missed'), ...Array(pending).fill('sent'),

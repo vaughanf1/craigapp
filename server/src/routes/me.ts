@@ -5,8 +5,8 @@ import { isValidTimezone } from '../lib/time.ts'
 import { env } from '../lib/env.ts'
 import { requireUser, type Env } from './middleware.ts'
 import { publicUser } from './auth.ts'
-import { getCoach } from '../../../shared/coaches.ts'
-import { accountability } from '../../../shared/pricing.ts'
+import { getCoach } from '../../shared/coaches.ts'
+import { accountability } from '../../shared/pricing.ts'
 import { localParts } from '../lib/time.ts'
 
 const app = new Hono<Env>()

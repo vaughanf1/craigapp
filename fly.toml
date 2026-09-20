@@ -3,7 +3,7 @@ app = "bemore-api"
 primary_region = "lhr"
 
 [build]
-  dockerfile = "server/Dockerfile"
+  dockerfile = "server/Dockerfile.fly"
 
 [env]
   PORT = "8787"

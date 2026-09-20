@@ -1,2 +1,2 @@
-export { COACHES, getCoach } from '../../shared/coaches.ts'
-export type { Coach } from '../../shared/coaches.ts'
+export { COACHES, getCoach } from '../../server/shared/coaches.ts'
+export type { Coach } from '../../server/shared/coaches.ts'

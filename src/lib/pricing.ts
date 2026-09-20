@@ -1,2 +1,2 @@
-export { PRICING, accountability, pounds, pricingRule } from '../../shared/pricing.ts'
-export type { AccountabilityMonth } from '../../shared/pricing.ts'
+export { PRICING, accountability, pounds, pricingRule } from '../../server/shared/pricing.ts'
+export type { AccountabilityMonth } from '../../server/shared/pricing.ts'

@@ -58,7 +58,18 @@ call. Free.
 iPhone: users must add Be More to their Home Screen for push to work — the
 Settings screen says so.
 
-## 4. Deploy (30 min)
+## 4. Deploy
+
+**Already done (Railway):** the API runs at `https://api-production-6d7fe.up.railway.app`
+(project `bemore-api`, service `api`, SQLite on a 5 GB volume at `/data`). Redeploy with
+`npm run deploy:api`. Set secrets with `railway variables -s api --set KEY=value`
+(then it redeploys itself). The Pages build points at it by default.
+
+Note: Railway's builder failed silently on Dockerfile builds here, so the service uses
+Railway's native Node builder (it reads `engines` for Node 22). `server/Dockerfile.fly`
+is kept for Fly.io.
+
+### Alternative: Fly.io
 
 The server needs to be up 24/7 for the scheduler to ring people.
 

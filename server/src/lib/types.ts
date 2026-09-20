@@ -30,7 +30,7 @@ export const AREA_TONE: Record<GoalAreaId, string> = {
   legacy: 'Reflective and long-horizon. Connect today to the life they want to have lived.',
 }
 
-import type { Roadmap } from '../../../shared/roadmap.ts'
+import type { Roadmap } from '../../shared/roadmap.ts'
 export type { Roadmap }
 
 export interface WeighIn {

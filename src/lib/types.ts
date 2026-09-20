@@ -21,9 +21,9 @@ export interface GoalArea {
 
 export type VoiceAccent = 'british' | 'american'
 
-export type { Coach, CoachGender, CoachAgeBand } from '../../shared/coaches.ts'
-import type { Roadmap } from '../../shared/roadmap.ts'
-import type { Task, WarMap } from '../../shared/warmap.ts'
+export type { Coach, CoachGender, CoachAgeBand } from '../../server/shared/coaches.ts'
+import type { Roadmap } from '../../server/shared/roadmap.ts'
+import type { Task, WarMap } from '../../server/shared/warmap.ts'
 export type { Roadmap, Task, WarMap }
 
 /** Craig's 7-step goal framework */

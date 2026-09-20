@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buildLocalWarMap, boardColumns, currentPhase, planningHorizon, type Task } from '../../shared/warmap.ts'
+import { buildLocalWarMap, boardColumns, currentPhase, planningHorizon, type Task } from '../shared/warmap.ts'
 
 describe('planning horizon', () => {
   it('runs to the end of the year, or the target date if later, never under 8 weeks', () => {

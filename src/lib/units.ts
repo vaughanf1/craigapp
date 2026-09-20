@@ -1,1 +1,1 @@
-export { formatWeight, parseWeightToKg, halfwayKg } from '../../shared/units.ts'
+export { formatWeight, parseWeightToKg, halfwayKg } from '../../server/shared/units.ts'
