@@ -109,6 +109,21 @@ app.post('/actions', async (c) => {
   return c.json({ ok: true })
 })
 
+/** Snap a meal: base64 image in, items + calories out. The app logs what the user confirms. */
+app.post('/food/photo', async (c) => {
+  const user = c.get('user')
+  const body = z.object({
+    image: z.string().min(100).max(6_000_000),
+    mediaType: z.enum(['image/jpeg', 'image/png', 'image/webp']).default('image/jpeg'),
+    note: z.string().max(300).default(''),
+  }).safeParse(await c.req.json())
+  if (!body.success) return c.json({ error: 'Send a photo (jpeg/png/webp, under ~4 MB)' }, 400)
+  const { analyseMealPhoto } = await import('../coach/food.ts')
+  const base64 = body.data.image.replace(/^data:[^;]+;base64,/, '')
+  const analysis = await analyseMealPhoto(user, { mediaType: body.data.mediaType, base64 }, body.data.note)
+  return c.json(analysis)
+})
+
 app.delete('/food/:id', (c) => {
   repo.removeFood(c.get('user').id, c.req.param('id'))
   return c.json({ ok: true })

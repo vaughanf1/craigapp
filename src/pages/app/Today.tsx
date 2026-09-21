@@ -20,6 +20,7 @@ import { Card, CoachAvatar, Rise } from '../../components/ui'
 import { DailyActions } from '../../components/Roadmap'
 import { Board } from '../../components/WarMapView'
 import { AccountabilityTile } from '../../components/Accountability'
+import MealPhoto from '../../components/MealPhoto'
 import { CoachFace } from '../../components/CoachFace'
 import type { FoodEntry } from '../../lib/types'
 
@@ -399,6 +400,8 @@ function CalorieCard({
             {showQuick ? 'Hide' : 'Quick add'}
           </button>
         </div>
+
+        {kind === 'food' && <MealPhoto />}
 
         {showQuick && (
           <div className="no-scrollbar mt-3 flex gap-2 overflow-x-auto">

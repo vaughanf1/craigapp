@@ -131,7 +131,7 @@ export function Board({ compact = false }: { compact?: boolean }) {
       <motion.li key={t.id} layout initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-start gap-3 rounded-2xl px-2 py-2 hover:bg-black/[0.03]">
         <button
           onClick={() => updateTask(t.id, { status: t.status === 'done' ? 'todo' : 'done' })}
-          className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 text-xs ${t.status === 'done' ? 'border-leaf bg-leaf text-white' : 'border-black/20'}`}
+          className={`-m-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 text-sm ${t.status === 'done' ? 'border-leaf bg-leaf text-white' : 'border-black/20'}`}
           aria-label={t.status === 'done' ? 'Mark not done' : 'Mark done'}
         >
           {t.status === 'done' ? '✓' : ''}
@@ -147,7 +147,7 @@ export function Board({ compact = false }: { compact?: boolean }) {
           </p>
         </div>
         {!compact && (
-          <button onClick={() => removeTask(t.id)} className="text-xs text-ink-secondary hover:text-coral" aria-label="Remove">
+          <button onClick={() => removeTask(t.id)} className="-m-2 flex h-9 w-9 items-center justify-center rounded-full text-sm text-ink-secondary hover:bg-black/5 hover:text-coral" aria-label="Remove">
             ✕
           </button>
         )}
@@ -161,7 +161,7 @@ export function Board({ compact = false }: { compact?: boolean }) {
         <h2 className="shrink-0 font-semibold">The board</h2>
         <div className="flex gap-1 rounded-full bg-black/[0.05] p-1 text-xs font-medium">
           {([['week', `Week${cols.overdue.length + cols.thisWeek.length ? ` · ${cols.overdue.length + cols.thisWeek.length}` : ''}`], ['next', 'Next'], ['done', 'Done']] as const).map(([k, label]) => (
-            <button key={k} onClick={() => setTab(k)} className={`rounded-full px-3 py-1 ${tab === k ? 'bg-white shadow-card' : 'text-ink-secondary'}`}>
+            <button key={k} onClick={() => setTab(k)} className={`rounded-full px-3 py-2 ${tab === k ? 'bg-white shadow-card' : 'text-ink-secondary'}`}>
               {label}
             </button>
           ))}

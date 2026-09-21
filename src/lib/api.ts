@@ -148,6 +148,8 @@ export const api = {
   addFood: (f: FoodEntry) => post<{ ok: true }>('/me/food', f),
   removeFood: (id: string) => del<{ ok: true }>(`/me/food/${id}`),
   weighIn: (w: WeighIn) => post<{ ok: true }>('/me/weighins', w),
+  foodPhoto: (dataUrl: string, note = '') =>
+    post<{ items: { label: string; portion: string; calories: number; confidence: 'low' | 'medium' | 'high' }[]; totalCalories: number; isFood: boolean; coachNote: string }>('/me/food/photo', { image: dataUrl, mediaType: 'image/jpeg', note }),
   setAction: (a: ActionLog) => post<{ ok: true }>('/me/actions', a),
   schedule: () => request<Schedule>('/me/schedule'),
   accountability: () => request<AccountabilityMonth>('/me/accountability'),

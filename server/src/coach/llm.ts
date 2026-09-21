@@ -71,26 +71,46 @@ export async function completeText(req: LlmRequest): Promise<string> {
   return text
 }
 
-/** Structured completion: returns the parsed object, or null if the model produced nothing usable. */
-export async function completeJson<T>(req: LlmRequest & { schema: z.ZodType<T>; name: string }): Promise<T | null> {
+export interface ImageInput {
+  /** image/jpeg | image/png | image/webp */
+  mediaType: 'image/jpeg' | 'image/png' | 'image/webp'
+  base64: string
+}
+
+/** Structured completion: returns the parsed object, or null if the model produced nothing usable. `image` attaches to the last user message. */
+export async function completeJson<T>(req: LlmRequest & { schema: z.ZodType<T>; name: string; image?: ImageInput }): Promise<T | null> {
   if (provider() === 'openai') {
+    const input = req.image
+      ? req.messages.map((m, i) =>
+          i === req.messages.length - 1 && m.role === 'user'
+            ? { role: 'user' as const, content: [{ type: 'input_text' as const, text: m.content }, { type: 'input_image' as const, image_url: `data:${req.image!.mediaType};base64,${req.image!.base64}`, detail: 'auto' as const }] }
+            : m,
+        )
+      : req.messages
     const r = await openai().responses.parse({
       model: OPENAI_MODEL,
       instructions: req.system.join('\n\n'),
-      input: req.messages,
+      input,
       reasoning: { effort: req.effort },
       max_output_tokens: req.maxTokens,
       text: { format: zodTextFormat(req.schema, req.name) },
     })
     return (r.output_parsed as T | null) ?? null
   }
+  const messages: Anthropic.MessageParam[] = req.image
+    ? req.messages.map((m, i) =>
+        i === req.messages.length - 1 && m.role === 'user'
+          ? { role: 'user' as const, content: [{ type: 'image' as const, source: { type: 'base64' as const, media_type: req.image!.mediaType, data: req.image!.base64 } }, { type: 'text' as const, text: m.content }] }
+          : m,
+      )
+    : req.messages
   const response = await anthropic().messages.parse({
     model: MODEL,
     max_tokens: req.maxTokens,
     thinking: { type: 'adaptive' },
     output_config: { effort: req.effort, format: zodOutputFormat(req.schema) },
     system: req.system.map((text, i) => (i === 0 ? { type: 'text' as const, text, cache_control: { type: 'ephemeral' as const } } : { type: 'text' as const, text })),
-    messages: req.messages,
+    messages,
   })
   return (response.parsed_output as T | null) ?? null
 }

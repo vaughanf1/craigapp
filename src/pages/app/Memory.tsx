@@ -130,7 +130,7 @@ export default function Memory() {
                 <motion.li key={m.id} layout className="flex items-start gap-3 text-[15px] leading-relaxed">
                   <span className={`mt-2 h-1.5 w-1.5 shrink-0 rounded-full ${m.importance >= 3 ? 'bg-accent' : 'bg-black/20'}`} />
                   <span className="flex-1">{m.text}</span>
-                  <button onClick={() => forget(m.id)} className="text-xs text-ink-secondary hover:text-coral" aria-label="Forget this">
+                  <button onClick={() => forget(m.id)} className="-my-2 rounded-full px-3 py-2 text-xs text-ink-secondary hover:bg-black/5 hover:text-coral" aria-label="Forget this">
                     forget
                   </button>
                 </motion.li>
