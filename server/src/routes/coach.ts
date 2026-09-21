@@ -9,6 +9,7 @@ import { reviewPlan, assessStanding } from '../coach/review.ts'
 import { buildWarMapInBackground } from '../coach/warmap.ts'
 import { localParts as lp } from '../lib/time.ts'
 import { localParts } from '../lib/time.ts'
+import { env } from '../lib/env.ts'
 import { requireUser, requireProfile, type Env } from './middleware.ts'
 
 const app = new Hono<Env>()
@@ -17,9 +18,9 @@ app.use('*', requireUser)
 /** Chat or in-app call turn */
 app.post('/message', async (c) => {
   const user = requireProfile(c)
-  const body = z.object({ text: z.string().min(1).max(4000), channel: z.enum(['chat', 'call']).default('chat') }).safeParse(await c.req.json())
+  const body = z.object({ text: z.string().min(1).max(4000), channel: z.enum(['chat', 'call']).default('chat'), mode: z.enum(['wrap-up']).optional() }).safeParse(await c.req.json())
   if (!body.success) return c.json({ error: 'Invalid message' }, 400)
-  const text = await reply(user, body.data.text, body.data.channel)
+  const text = await reply(user, body.data.text, body.data.channel, body.data.mode)
   return c.json({ reply: text })
 })
 
@@ -34,6 +35,9 @@ app.post('/call-now', async (c) => {
 })
 
 app.get('/deliveries', (c) => c.json(repo.listDeliveries(c.get('user').id)))
+
+/** Call limits, so the in-app call keeps to the same rules as the phone call */
+app.get('/call-limits', (c) => c.json(env.call))
 
 app.get('/deliveries/:id', (c) => {
   const d = repo.getDelivery(c.req.param('id'))

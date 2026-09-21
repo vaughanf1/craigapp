@@ -36,6 +36,13 @@ export const env = {
     },
   },
 
+  /** Calls: hard cap enforced by Twilio, soft cap where the coach starts wrapping up, and a turn cap */
+  call: {
+    maxSeconds: Number(e.CALL_MAX_SECONDS ?? 240),
+    wrapUpSeconds: Number(e.CALL_WRAP_UP_SECONDS ?? 150),
+    maxTurns: Number(e.CALL_MAX_TURNS ?? 6),
+  },
+
   isProd: e.NODE_ENV === 'production',
 }
 

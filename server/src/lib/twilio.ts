@@ -53,6 +53,8 @@ export async function placeCall(to: string, url: string, statusCallback: string)
     StatusCallbackEvent: 'answered completed',
     MachineDetection: 'Enable',
     Timeout: '25',
+    // Hard cap: Twilio ends the call itself, whatever happens in the conversation
+    TimeLimit: String(env.call.maxSeconds),
   })
   return { sid: r.sid as string, simulated: false }
 }

@@ -20,14 +20,16 @@ export function toTurns(messages: repo.StoredMessage[]): { role: 'user' | 'assis
  * The user said something (typed or spoken). Store it, answer as the coach,
  * store the answer, and queue memory extraction.
  */
-export async function reply(user: repo.User, text: string, channel: Channel): Promise<string> {
+export async function reply(user: repo.User, text: string, channel: Channel, mode?: 'wrap-up'): Promise<string> {
   if (!user.profile) throw new Error('Profile not set')
   repo.addMessage(user.id, 'user', text, channel)
 
   const ctx = buildContext(user)
   const history = toTurns(repo.recentMessages(user.id, 30))
   const channelNote = channel === 'call'
-    ? '\n\nThis is a live PHONE CALL. Keep each turn to 2-3 short spoken sentences. End with a question, or if the conversation is naturally finishing, a warm sign-off that includes the word "goodbye".'
+    ? mode === 'wrap-up'
+      ? '\n\nThis is a live PHONE CALL and time is nearly up. Respond to what they just said in one or two sentences, name the one thing for today, and sign off warmly with the word "goodbye". Do not ask another question.'
+      : '\n\nThis is a live PHONE CALL. Keep each turn to 2-3 short spoken sentences. End with a question, or if the conversation is naturally finishing, a warm sign-off that includes the word "goodbye".'
     : ''
 
   const answer = await completeText({

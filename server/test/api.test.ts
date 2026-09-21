@@ -416,6 +416,11 @@ describe('deliveries — the call', () => {
     expect(x2).not.toContain('<Gather')
     expect(x2).toContain('<Hangup/>')
 
+    // Near the turn cap the coach is told to wrap up, and the call is hard-capped by Twilio
+    createMock.mockResolvedValueOnce({ stop_reason: 'end_turn', content: [{ type: 'text', text: 'One thing today: the walk. Goodbye.' }] })
+    await app.request(`/twilio/gather/${d.id}?t=5`, { method: 'POST', body: new URLSearchParams({ SpeechResult: 'And another thing' }) })
+    expect(createMock.mock.calls.at(-1)![0].system[1].text).toContain('time is nearly up')
+
     // voicemail: leave the brief and hang up
     parseMock.mockResolvedValueOnce({ parsed_output: brief })
     const d2 = await (await api('/coach/call-now', { method: 'POST', body: JSON.stringify({ channels: ['call'] }) }, token)).json() as any

@@ -11,7 +11,6 @@ import { getCoach } from '../../shared/coaches.ts'
  * and loop — a conversation with your coach on an actual phone call.
  */
 const app = new Hono()
-const MAX_TURNS = 8
 
 async function formParams(c: { req: { parseBody: () => Promise<Record<string, unknown>> } }): Promise<Record<string, string>> {
   const raw = await c.req.parseBody()
@@ -64,14 +63,17 @@ app.post('/gather/:id', async (c) => {
     return c.body(twiml({ voice: coach.phoneVoice, say: "I didn't catch that, so I'll let you go. It's all in the app. Speak soon." }), 200, XML)
   }
 
+  // Past the soft limit the coach is told to wrap up; Twilio's TimeLimit is the hard stop
+  const elapsed = (Date.now() - (d.answeredAt ?? d.createdAt)) / 1000
+  const wrapUp = elapsed >= env.call.wrapUpSeconds || turn >= env.call.maxTurns - 1
   let answer: string
   try {
-    answer = await reply(user, heard, 'call')
+    answer = await reply(user, heard, 'call', wrapUp ? 'wrap-up' : undefined)
   } catch (err) {
     console.error('[twilio] reply failed', err)
     answer = "I'm having trouble hearing you properly, so let's pick this up in the app. Speak soon. Goodbye."
   }
-  const finished = turn >= MAX_TURNS || /\bgoodbye\b/i.test(answer) || /\b(bye|goodbye|got to go|gotta go|speak later)\b/i.test(heard)
+  const finished = turn >= env.call.maxTurns || /\bgoodbye\b/i.test(answer) || /\b(bye|goodbye|got to go|gotta go|speak later)\b/i.test(heard)
   return c.body(twiml({
     voice: coach.phoneVoice,
     say: answer,

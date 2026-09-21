@@ -75,3 +75,10 @@ describe('scheduler slots', () => {
     expect(kindForSlot('20:00', ['20:00'])).toBe('evening')
   })
 })
+
+describe('call caps', () => {
+  it('defaults: 4 min hard cap, wrap-up at 2:30, 6 turns', async () => {
+    const { env } = await import('../src/lib/env.ts')
+    expect(env.call).toEqual({ maxSeconds: 240, wrapUpSeconds: 150, maxTurns: 6 })
+  })
+})

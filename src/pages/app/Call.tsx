@@ -32,6 +32,10 @@ export default function Call() {
   const [draft, setDraft] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [muted, setMuted] = useState(false)
+  const [elapsed, setElapsed] = useState(0)
+  const [limits, setLimits] = useState({ maxSeconds: 240, wrapUpSeconds: 150, maxTurns: 6 })
+  const userTurns = useRef(0)
+  const startedAt = useRef<number | null>(null)
   const mutedRef = useRef(false)
   const stopListenRef = useRef<() => void>(() => {})
   const loadedRef = useRef(false)
@@ -97,6 +101,23 @@ export default function Call() {
     transcriptRef.current?.scrollTo({ top: transcriptRef.current.scrollHeight, behavior: 'smooth' })
   }, [turns, thinking])
 
+  useEffect(() => {
+    if (online) api.coach.callLimits().then(setLimits).catch(() => {})
+  }, [online])
+
+  /* Call clock: same caps as the phone call — hard stop at maxSeconds */
+  useEffect(() => {
+    if (stage !== 'live') return
+    startedAt.current = Date.now()
+    const iv = setInterval(() => {
+      const secs = Math.floor((Date.now() - (startedAt.current ?? Date.now())) / 1000)
+      setElapsed(secs)
+      if (secs >= limits.maxSeconds) endCall()
+    }, 1000)
+    return () => clearInterval(iv)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stage, limits.maxSeconds])
+
   useEffect(
     () => () => {
       stopSpeaking()
@@ -132,15 +153,18 @@ export default function Call() {
     setTurns((t) => [...t, { id: uid(), from: 'user', text }])
     addChat({ id: uid(), from: 'user', text, timestamp: Date.now() })
     setThinking(true)
+    userTurns.current += 1
+    const secs = (Date.now() - (startedAt.current ?? Date.now())) / 1000
+    const wrapUp = secs >= limits.wrapUpSeconds || userTurns.current >= limits.maxTurns - 1
     let reply: string
     try {
-      reply = online ? (await api.coach.message(text, 'call')).reply : coachReply(profile, text)
+      reply = online ? (await api.coach.message(text, 'call', wrapUp ? 'wrap-up' : undefined)).reply : coachReply(profile, text)
     } catch {
       reply = coachReply(profile, text) // server unreachable — the built-in coach keeps the call going
     }
     setThinking(false)
     await say(reply)
-    if (/\bgoodbye\b/i.test(reply)) return endCall()
+    if (/\bgoodbye\b/i.test(reply) || userTurns.current >= limits.maxTurns) return endCall()
     listen()
   }
 
@@ -225,7 +249,9 @@ export default function Call() {
               <div>
                 <p className="text-xl font-semibold">{coach.name}</p>
                 <p className="text-sm text-white/70">
-                  {speaking ? 'Speaking…' : listening ? 'Listening…' : thinking ? 'Thinking…' : 'On the call'}
+                  <span className="tabular-nums">{Math.floor(elapsed / 60)}:{String(elapsed % 60).padStart(2, '0')}</span>
+                  {' · '}
+                  {speaking ? 'Speaking…' : listening ? 'Listening…' : thinking ? 'Thinking…' : elapsed >= limits.wrapUpSeconds ? 'Wrapping up' : 'On the call'}
                 </p>
               </div>
               <button
