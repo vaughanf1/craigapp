@@ -439,6 +439,7 @@ describe('guided discovery', () => {
     expect(ctx).toContain('Still to learn (11)')
     expect(ctx).toContain('ask ONE question to learn: why this goal, really')
     expect(createMock.mock.calls.at(-1)![0].system[0].text).toContain('Diagnose before you prescribe')
+    expect(createMock.mock.calls.at(-1)![0].system[0].text).toContain('NOT A YES-MAN')
   })
   it('answers are stored and the next question moves on', async () => {
     createMock.mockResolvedValueOnce({ stop_reason: 'end_turn', content: [{ type: 'text', text: 'Thanks.' }] })
