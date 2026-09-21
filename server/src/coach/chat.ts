@@ -1,5 +1,4 @@
-import Anthropic from '@anthropic-ai/sdk'
-import { anthropic, MODEL, FALLBACK_BETAS, FALLBACKS } from './client.ts'
+import { completeText } from './llm.ts'
 import { personaBlock, contextBlock } from './prompt.ts'
 import { buildContext } from './context.ts'
 import * as repo from '../lib/repo.ts'
@@ -8,11 +7,11 @@ import { rememberLater } from './memory.ts'
 export type Channel = 'chat' | 'call'
 
 /** Turn stored messages into API turns; the API requires the first turn to be the user's. */
-export function toTurns(messages: repo.StoredMessage[]): Anthropic.MessageParam[] {
+export function toTurns(messages: repo.StoredMessage[]): { role: 'user' | 'assistant'; content: string }[] {
   const first = messages.findIndex((m) => m.role === 'user')
   if (first === -1) return []
   return messages.slice(first).map((m) => ({
-    role: m.role === 'user' ? 'user' : 'assistant',
+    role: m.role === 'user' ? ('user' as const) : ('assistant' as const),
     content: m.text,
   }))
 }
@@ -31,29 +30,12 @@ export async function reply(user: repo.User, text: string, channel: Channel): Pr
     ? '\n\nThis is a live PHONE CALL. Keep each turn to 2-3 short spoken sentences. End with a question, or if the conversation is naturally finishing, a warm sign-off that includes the word "goodbye".'
     : ''
 
-  const response = await anthropic().beta.messages.create({
-    model: MODEL,
-    max_tokens: 1024,
-    betas: FALLBACK_BETAS,
-    fallbacks: FALLBACKS,
-    thinking: { type: 'adaptive' },
-    output_config: { effort: 'low' },
-    system: [
-      { type: 'text', text: personaBlock(user.profile.coachId), cache_control: { type: 'ephemeral' } },
-      { type: 'text', text: contextBlock(ctx) + channelNote },
-    ],
+  const answer = await completeText({
+    system: [personaBlock(user.profile.coachId), contextBlock(ctx) + channelNote],
     messages: history,
+    maxTokens: 1024,
+    effort: 'low',
   })
-
-  if (response.stop_reason === 'refusal') {
-    throw new Error('The coach could not respond to that message')
-  }
-  const answer = response.content
-    .filter((b): b is Anthropic.Beta.BetaTextBlock => b.type === 'text')
-    .map((b) => b.text)
-    .join('')
-    .trim()
-  if (!answer) throw new Error('Empty response from coach')
 
   repo.addMessage(user.id, 'coach', answer, channel)
   rememberLater(user.id)

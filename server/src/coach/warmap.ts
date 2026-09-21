@@ -1,6 +1,5 @@
 import { z } from 'zod'
-import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod'
-import { anthropic, MODEL } from './client.ts'
+import { completeJson } from './llm.ts'
 import { personaBlock } from './prompt.ts'
 import { buildLocalWarMap, planningHorizon, type BuildStep, type Task, type WarMap } from '../../shared/warmap.ts'
 import { formatWeight } from '../../shared/units.ts'
@@ -94,38 +93,32 @@ export async function buildWarMap(user: repo.User): Promise<{ map: WarMap; tasks
   let draft: DraftT | null = null
   const log: BuildStep[] = []
   try {
-    const sys = [
-      { type: 'text' as const, text: personaBlock(p.coachId), cache_control: { type: 'ephemeral' as const } },
-      { type: 'text' as const, text: situation(user, today) },
-    ]
-    const first: DraftT | null = (await anthropic().messages.parse({
-      model: MODEL, max_tokens: 8192, thinking: { type: 'adaptive' },
-      output_config: { effort: 'high', format: zodOutputFormat(Draft) },
+    const sys = [personaBlock(p.coachId), situation(user, today)]
+    const first: DraftT | null = await completeJson({
+      schema: Draft, name: 'war_map_draft', maxTokens: 8192, effort: 'medium',
       system: sys,
       messages: [{ role: 'user', content: `Build ${p.name}'s war map for the horizon: work backwards from the outcome, phase by phase, then the concrete one-off tasks that make each phase happen. Phases must line up with the existing stops where there are any. Tasks are moves (book, buy, tell, set up, clear out, learn, decide), not habits — the daily actions already cover habits. The first two weeks must be specific enough to start tomorrow.` }],
-    })).parsed_output
+    })
     if (!first) throw new Error('no draft')
     draft = first
 
     for (let round = 1; round <= MAX_ROUNDS; round++) {
       repo.setWarMapStatus(user.id, 'building', round === 1 ? 'The board is reviewing the draft' : `Board review, round ${round}`)
-      const review: ReviewT | null = (await anthropic().messages.parse({
-        model: MODEL, max_tokens: 2048, thinking: { type: 'adaptive' },
-        output_config: { effort: 'medium', format: zodOutputFormat(Review) },
-        system: [{ type: 'text', text: `You are the board reviewing a personal strategic plan before it goes to the person. Be blunt and specific. Score 1-10. A 10 means: (1) genuinely reverse-engineered from the goal and date — each phase is a necessary step to the next, not filler; (2) every key result is measurable or checkable; (3) the first two weeks are concrete enough to start tomorrow; (4) it takes the stated obstacles seriously with reduce-not-ban tactics; (5) phases are contiguous and cover the whole horizon; (6) tasks are one-off moves with sensible dates, not vague habits; (7) it would not overwhelm a normal person with a job. Fewer than 8 means it must be revised.\n\n${situation(user, today)}` }],
+      const review: ReviewT | null = await completeJson({
+        schema: Review, name: 'board_review', maxTokens: 2048, effort: 'medium',
+        system: [`You are the board reviewing a personal strategic plan before it goes to the person. Be blunt and specific. Score 1-10. A 10 means: (1) genuinely reverse-engineered from the goal and date — each phase is a necessary step to the next, not filler; (2) every key result is measurable or checkable; (3) the first two weeks are concrete enough to start tomorrow; (4) it takes the stated obstacles seriously with reduce-not-ban tactics; (5) phases are contiguous and cover the whole horizon; (6) tasks are one-off moves with sensible dates, not vague habits; (7) it would not overwhelm a normal person with a job. Fewer than 8 means it must be revised.\n\n${situation(user, today)}`],
         messages: [{ role: 'user', content: `DRAFT ${round}\n${JSON.stringify(draft)}` }],
-      })).parsed_output
+      })
       if (!review) break
       log.push({ iteration: round, score: review.score, verdict: review.verdict, issues: review.issues })
       if (review.score >= PASS_SCORE || round === MAX_ROUNDS) break
 
       repo.setWarMapStatus(user.id, 'building', `Revising after the board's notes (round ${round})`)
-      const revised: DraftT | null = (await anthropic().messages.parse({
-        model: MODEL, max_tokens: 8192, thinking: { type: 'adaptive' },
-        output_config: { effort: 'high', format: zodOutputFormat(Draft) },
+      const revised: DraftT | null = await completeJson({
+        schema: Draft, name: 'war_map_revision', maxTokens: 8192, effort: 'medium',
         system: sys,
         messages: [{ role: 'user', content: `Revise the war map to fix every issue the board raised. Keep what worked.\n\nBOARD VERDICT (${review.score}/10): ${review.verdict}\nISSUES:\n${review.issues.map((i) => `- ${i}`).join('\n')}\n\nCURRENT DRAFT:\n${JSON.stringify(draft)}` }],
-      })).parsed_output
+      })
       if (revised) draft = revised
     }
   } catch (err) {

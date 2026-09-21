@@ -8,6 +8,13 @@ import me from './routes/me.ts'
 import coach from './routes/coach.ts'
 import push from './routes/push.ts'
 import twilio from './routes/twilio.ts'
+import { modelName, provider } from './coach/llm.ts'
+
+/** Which model answers, or 'off' when neither provider has a key (scripted fallbacks only) */
+function brainStatus(): string {
+  if (process.env.OPENAI_API_KEY || process.env.ANTHROPIC_API_KEY) return `${provider()}:${modelName()}`
+  return 'off'
+}
 
 export function createApp() {
   const app = new Hono()
@@ -24,7 +31,7 @@ export function createApp() {
     allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   }))
 
-  app.get('/health', (c) => c.json({ ok: true, version: '1.2.0', push: env.vapid.enabled, calls: env.twilio.enabled }))
+  app.get('/health', (c) => c.json({ ok: true, version: '1.3.0', brain: brainStatus(), push: env.vapid.enabled, calls: env.twilio.enabled }))
   app.route('/auth', auth)
   app.route('/me', me)
   app.route('/coach', coach)

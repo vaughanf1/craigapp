@@ -1,6 +1,5 @@
 import { z } from 'zod'
-import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod'
-import { anthropic, MODEL } from './client.ts'
+import { completeJson } from './llm.ts'
 import { personaBlock, contextBlock } from './prompt.ts'
 import { buildContext } from './context.ts'
 import * as repo from '../lib/repo.ts'
@@ -24,18 +23,14 @@ const INSTRUCTIONS: Record<DeliveryKind, string> = {
 export async function generateBrief(user: repo.User, kind: DeliveryKind): Promise<BriefContent> {
   if (!user.profile) throw new Error('Profile not set')
   const ctx = buildContext(user)
-  const response = await anthropic().messages.parse({
-    model: MODEL,
-    max_tokens: 2048,
-    thinking: { type: 'adaptive' },
-    output_config: { effort: 'low', format: zodOutputFormat(Brief) },
-    system: [
-      { type: 'text', text: personaBlock(user.profile.coachId), cache_control: { type: 'ephemeral' } },
-      { type: 'text', text: contextBlock(ctx) },
-    ],
+  const out = await completeJson({
+    schema: Brief,
+    name: 'brief',
+    maxTokens: 2048,
+    effort: 'low',
+    system: [personaBlock(user.profile.coachId), contextBlock(ctx)],
     messages: [{ role: 'user', content: INSTRUCTIONS[kind] }],
   })
-  const out = response.parsed_output
   if (!out) throw new Error('Brief generation returned no structured output')
   // The brief carries the explanation — don't repeat it on every call
   const pending = repo.unexplainedReview(user.id)

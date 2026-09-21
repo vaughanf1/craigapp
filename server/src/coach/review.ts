@@ -1,6 +1,5 @@
 import { z } from 'zod'
-import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod'
-import { anthropic, MODEL } from './client.ts'
+import { completeJson } from './llm.ts'
 import { personaBlock, contextBlock } from './prompt.ts'
 import { buildContext } from './context.ts'
 import { currentMilestone, daysBetween, weightProgress, type Roadmap } from '../../shared/roadmap.ts'
@@ -96,15 +95,12 @@ export async function reviewPlan(user: repo.User, trigger: 'weekly' | 'behind' |
 
   let out: z.infer<typeof ReviewOut>
   try {
-    const response = await anthropic().messages.parse({
-      model: MODEL,
-      max_tokens: 4096,
-      thinking: { type: 'adaptive' },
-      output_config: { effort: 'medium', format: zodOutputFormat(ReviewOut) },
-      system: [
-        { type: 'text', text: personaBlock(p.coachId), cache_control: { type: 'ephemeral' } },
-        { type: 'text', text: contextBlock(ctx) },
-      ],
+    const parsed = await completeJson({
+      schema: ReviewOut,
+      name: 'plan_review',
+      maxTokens: 4096,
+      effort: 'medium',
+      system: [personaBlock(p.coachId), contextBlock(ctx)],
       messages: [{
         role: 'user',
         content: `NIGHTLY PLAN REVIEW (${trigger}). Today is ${today}. Decide whether ${p.name}'s plan should stay or change.
@@ -126,7 +122,7 @@ Rules:
 Current plan: ${JSON.stringify({ summary: roadmap.summary, milestones: roadmap.milestones, weeklyCommitments: roadmap.weeklyCommitments, dailyActions: roadmap.dailyActions })}`,
       }],
     })
-    out = response.parsed_output ?? localReview(roadmap, standing, today)
+    out = parsed ?? localReview(roadmap, standing, today)
   } catch (err) {
     console.warn('[review] Claude unavailable, using local rules:', (err as Error).message)
     out = localReview(roadmap, standing, today)

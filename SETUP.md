@@ -4,14 +4,16 @@ Everything below is optional in development (the server simulates it and logs
 what it *would* have done). For a live demo where Craig's phone actually
 rings, you need all four.
 
-## 1. The coach brain — Anthropic (5 min)
+## 1. The coach brain — OpenAI or Anthropic (5 min)
 
-1. console.anthropic.com → API keys → create key.
-2. `server/.env`: `ANTHROPIC_API_KEY=sk-ant-...`
+Either key works; OpenAI wins if both are set.
 
-Turns on: real conversations, the reverse-engineered plan, morning/evening
-briefs, memory extraction, nightly plan reviews. Model is `claude-opus-5`
-with a server-side fallback to Opus 4.8.
+- `OPENAI_API_KEY=sk-proj-...` → model `gpt-5.5` (override with `OPENAI_MODEL`). **This is what's live.**
+- `ANTHROPIC_API_KEY=sk-ant-...` → `claude-opus-5` with a server-side fallback to Opus 4.8.
+
+Turns on: real conversations, the reverse-engineered plan, the war map loop,
+morning/evening briefs, memory extraction, nightly plan reviews. `/health`
+reports which brain is active.
 
 Rough cost per active user per day: two briefs + one memory pass + a short
 call ≈ 25–40k input tokens (mostly cached) and ~2k output ≈ **£0.05–0.10**.

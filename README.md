@@ -71,7 +71,7 @@ is `123456` until Twilio Verify is configured.
 
 | Env | Purpose |
 |---|---|
-| `ANTHROPIC_API_KEY` | Coach brain (`claude-opus-5`, falls back to Opus 4.8 on a safety decline) |
+| `OPENAI_API_KEY` or `ANTHROPIC_API_KEY` | Coach brain — `gpt-5.5` (OpenAI wins if both set) or `claude-opus-5` with Opus 4.8 fallback |
 | `VAPID_*` | Web Push — notification calls |
 | `TWILIO_ACCOUNT_SID/AUTH_TOKEN/FROM_NUMBER` | Real phone calls (simulated + logged when unset) |
 | `TWILIO_VERIFY_SID` | SMS sign-in codes (dev OTP when unset) |

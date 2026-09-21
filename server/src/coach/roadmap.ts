@@ -1,6 +1,5 @@
 import { z } from 'zod'
-import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod'
-import { anthropic, MODEL } from './client.ts'
+import { completeJson } from './llm.ts'
 import { personaBlock } from './prompt.ts'
 import { buildLocalRoadmap, type Roadmap } from '../../shared/roadmap.ts'
 import { formatWeight } from '../../shared/units.ts'
@@ -45,16 +44,14 @@ export async function generateRoadmap(user: repo.User): Promise<Roadmap> {
   const fallback = buildLocalRoadmap(input)
 
   try {
-    const response = await anthropic().messages.parse({
-      model: MODEL,
-      max_tokens: 4096,
-      thinking: { type: 'adaptive' },
-      output_config: { effort: 'medium', format: zodOutputFormat(RoadmapOut) },
+    const out = await completeJson({
+      schema: RoadmapOut,
+      name: 'roadmap',
+      maxTokens: 4096,
+      effort: 'medium',
       system: [
-        { type: 'text', text: personaBlock(p.coachId), cache_control: { type: 'ephemeral' } },
-        {
-          type: 'text',
-          text: `Build ${p.name}'s plan by working backwards from the goal. Today is ${today}. By the inch it's a cinch: the first stop must feel close. Every milestone needs a date; measurable goals need a number at each stop. Obstacles get reduced, not banned.
+        personaBlock(p.coachId),
+        `Build ${p.name}'s plan by working backwards from the goal. Today is ${today}. By the inch it's a cinch: the first stop must feel close. Every milestone needs a date; measurable goals need a number at each stop. Obstacles get reduced, not banned.
 
 Life areas: ${(p.areaIds?.length ? p.areaIds : [p.areaId]).map((a, i) => `${AREA_NAMES[a]}${i === 0 ? ' (main focus — the plan is about this)' : ''}`).join(', ')}
 ${(p.areaIds?.length ?? 0) > 1 ? 'Daily actions: mostly the main focus, but include one small action for each other area so the whole life moves.' : ''}
@@ -69,17 +66,20 @@ Skills to build: ${p.plan.skills.join(', ') || '(none listed)'}
 
 A sensible default plan, to improve on (dates are already evenly spaced):
 ${JSON.stringify({ milestones: fallback.milestones, dailyActions: fallback.dailyActions.map((a) => a.text) })}`,
-        },
       ],
       messages: [{ role: 'user', content: 'Build the plan.' }],
     })
-    const out = response.parsed_output
     if (!out) return fallback
     return {
       summary: out.summary,
       milestones: out.milestones.map((m, i) => ({ id: `m${i + 1}`, title: m.title, targetDate: m.targetDate, metric: m.metric ?? undefined, why: m.why })),
       weeklyCommitments: out.weeklyCommitments,
-      dailyActions: out.dailyActions.map((text, i) => ({ id: `a${i + 1}`, text })),
+      // Models occasionally leak instruction text into an action — keep them short and checkable
+      dailyActions: out.dailyActions
+        .map((t) => t.split(/[.;]\s/)[0].trim())
+        .filter((t) => t.length > 3 && t.length <= 80)
+        .slice(0, 4)
+        .map((text, i) => ({ id: `a${i + 1}`, text })),
       generatedAt: Date.now(),
       source: 'coach',
     }

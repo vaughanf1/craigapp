@@ -1,6 +1,5 @@
 import { z } from 'zod'
-import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod'
-import { anthropic, MODEL } from './client.ts'
+import { completeJson } from './llm.ts'
 import * as repo from '../lib/repo.ts'
 import { localParts } from '../lib/time.ts'
 import { buildContext } from './context.ts'
@@ -65,12 +64,12 @@ export async function remember(userId: string): Promise<{ added: number; archive
   const ctx = buildContext(user)
   const transcript = fresh.map((m) => `${m.role === 'user' ? user.profile!.name : 'Coach'} (${m.channel}): ${m.text}`).join('\n')
 
-  const response = await anthropic().messages.parse({
-    model: MODEL,
-    max_tokens: 4096,
-    thinking: { type: 'adaptive' },
-    output_config: { effort: 'low', format: zodOutputFormat(MemoryUpdate) },
-    system: `You maintain the long-term memory of a personal coaching app for one person. From new conversation, extract only durable, useful facts about THEM — circumstances, preferences, triggers, people, upcoming events, patterns, wins and struggles. Skip pleasantries, skip anything already remembered, and never store medical diagnoses beyond what they volunteered. Write in third person, specific and short.
+  const out = await completeJson({
+    schema: MemoryUpdate,
+    name: 'memory_update',
+    maxTokens: 4096,
+    effort: 'low',
+    system: [`You maintain the long-term memory of a personal coaching app for one person. From new conversation, extract only durable, useful facts about THEM — circumstances, preferences, triggers, people, upcoming events, patterns, wins and struggles. Skip pleasantries, skip anything already remembered, and never store medical diagnoses beyond what they volunteered. Write in third person, specific and short.
 
 Their goal: ${user.profile.plan.statement}
 Today (their local date): ${date}
@@ -87,11 +86,9 @@ Daily actions on their plan (id: text):
 ${user.profile.plan.roadmap?.dailyActions.map((a) => `${a.id}: ${a.text}`).join('\n') || '(no plan yet)'}
 
 EXISTING MEMORIES (id: text)
-${existing.map((m) => `${m.id}: [${m.kind}] ${m.text}`).join('\n') || '(none)'}`,
+${existing.map((m) => `${m.id}: [${m.kind}] ${m.text}`).join('\n') || '(none)'}`],
     messages: [{ role: 'user', content: `NEW CONVERSATION\n${transcript}` }],
   })
-
-  const out = response.parsed_output
   if (!out) return { added: 0, archived: 0 }
 
   for (const m of out.add) repo.addMemory(userId, { ...m, source: fresh[0].channel })
