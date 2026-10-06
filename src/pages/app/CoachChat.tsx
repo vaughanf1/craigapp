@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import { uid, useStore } from '../../lib/store'
 import { getCoach } from '../../data/coaches'
-import { coachReply, dailyQuestion, greeting, speak, stopSpeaking } from '../../lib/coach'
+import { coachReply, dailyQuestion, greeting } from '../../lib/coach'
+import { speak, stopSpeaking } from '../../lib/voice'
 import { aiErrorKind, askCoach } from '../../lib/ai'
 import { api } from '../../lib/api'
 import { CoachFace } from '../../components/CoachFace'
@@ -23,7 +24,7 @@ export default function CoachChat() {
     openedRef.current = true
     const opener = `${greeting(profile.name)} I'm ${coach.name}, your coach. ${dailyQuestion(profile.areaId)}`
     addChat({ id: uid(), from: 'coach', text: opener, timestamp: Date.now() })
-    if (profile.voiceEnabled) speak(opener, profile.accent, coach.gender)
+    if (profile.voiceEnabled) speak(opener, coach, profile.accent)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -43,7 +44,7 @@ export default function CoachChat() {
   const deliver = (reply: string) => {
     setTyping(false)
     addChat({ id: uid(), from: 'coach', text: reply, timestamp: Date.now() })
-    if (profile.voiceEnabled) speak(reply, profile.accent, coach.gender)
+    if (profile.voiceEnabled) speak(reply, coach, profile.accent)
   }
 
   const send = () => {

@@ -4,16 +4,8 @@ import { motion } from 'framer-motion'
 import { currentStreak, todayKey, uid, useStore } from '../../lib/store'
 import { getCoach } from '../../data/coaches'
 import { areaForToday, getArea, profileAreas } from '../../data/goalAreas'
-import {
-  dailyMotivation,
-  dailyQuestion,
-  greeting,
-  morningKickoff,
-  speak,
-  streakPraise,
-  supportiveStatement,
-  understandingResponse,
-} from '../../lib/coach'
+import { dailyMotivation, dailyQuestion, greeting, morningKickoff, streakPraise, supportiveStatement, understandingResponse } from '../../lib/coach'
+import { speak } from '../../lib/voice'
 import { COMMON_EXERCISE, COMMON_FOODS } from '../../data/calories'
 import { parseFood } from '../../lib/food'
 import { Card, CoachAvatar, Rise } from '../../components/ui'
@@ -65,7 +57,7 @@ export default function Today() {
       : understandingResponse()
     setReaction(response)
     addChat({ id: uid(), from: 'coach', text: response, timestamp: Date.now() })
-    if (profile.voiceEnabled) speak(response, profile.accent, coach.gender)
+    if (profile.voiceEnabled) speak(response, coach, profile.accent)
     setNote('')
   }
 

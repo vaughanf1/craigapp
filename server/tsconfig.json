@@ -6,6 +6,7 @@
     "module": "nodenext",
     "moduleResolution": "nodenext",
     "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
     "rewriteRelativeImportExtensions": false,
     "verbatimModuleSyntax": true,
     "erasableSyntaxOnly": true,

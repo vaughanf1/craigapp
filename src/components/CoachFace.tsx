@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { Coach } from '../lib/types'
 import { useCoachIntro } from './CoachIntro'
 import { usePhonePortrait } from '../lib/useViewport'
@@ -33,6 +33,7 @@ export function CoachFace({
   className?: string
 }) {
   const ref = useRef<HTMLVideoElement>(null)
+  const [missing, setMissing] = useState(false)
   const { openIntro } = useCoachIntro()
   useEffect(() => {
     const v = ref.current
@@ -58,20 +59,30 @@ export function CoachFace({
           <span className="absolute -inset-1 rounded-full ring-2 ring-accent/60" />
         </>
       )}
-      <video
-        ref={ref}
-        src={`${import.meta.env.BASE_URL}${coach.video}`}
-        muted
-        loop
-        playsInline
-        preload="metadata"
-        aria-label={`${coach.name}, your coach`}
-        className={`relative h-full w-full rounded-full object-cover shadow-card bg-gradient-to-br ${coach.gradient}`}
-        style={{ objectPosition: '50% 28%' }}
-        onLoadedMetadata={(e) => {
-          if (!playing) e.currentTarget.currentTime = 0.3
-        }}
-      />
+      {missing ? (
+        <div
+          aria-label={`${coach.name}, your coach`}
+          className={`relative flex h-full w-full items-center justify-center rounded-full bg-gradient-to-br text-white shadow-card ${coach.gradient}`}
+        >
+          <span className="font-semibold" style={{ fontSize: '45%' }}>{coach.name[0]}</span>
+        </div>
+      ) : (
+        <video
+          ref={ref}
+          src={`${import.meta.env.BASE_URL}${coach.video}`}
+          muted
+          loop
+          playsInline
+          preload="metadata"
+          aria-label={`${coach.name}, your coach`}
+          className={`relative h-full w-full rounded-full object-cover shadow-card bg-gradient-to-br ${coach.gradient}`}
+          style={{ objectPosition: '50% 28%' }}
+          onError={() => setMissing(true)}
+          onLoadedMetadata={(e) => {
+            if (!playing) e.currentTarget.currentTime = 0.3
+          }}
+        />
+      )}
     </Wrapper>
   )
 }
@@ -91,6 +102,7 @@ export function CoachVideo({
   className?: string
 }) {
   const ref = useRef<HTMLVideoElement>(null)
+  const [missing, setMissing] = useState(false)
   const phone = usePhonePortrait()
   useEffect(() => {
     const v = ref.current
@@ -102,6 +114,9 @@ export function CoachVideo({
     } else v.pause()
   }, [playing, withSound])
 
+  if (missing) {
+    return <div className={`h-full w-full bg-gradient-to-br ${coach.gradient} ${className}`} />
+  }
   return (
     <video
       ref={ref}
@@ -109,6 +124,7 @@ export function CoachVideo({
       loop={!withSound}
       playsInline
       preload="auto"
+      onError={() => setMissing(true)}
       onEnded={onEnded}
       style={{ objectPosition: '50% 30%' }}
       className={`h-full w-full ${phone ? 'object-cover' : 'object-contain'} ${className}`}

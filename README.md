@@ -29,8 +29,9 @@ towards whatever goal you're chasing.
 5. **Accountability pricing.** Every unanswered call is logged. Miss more than the grace allowance in a month
    and next month costs more (capped); answer 90%+ and it costs less. Stated on the deal screen; the coach
    knows the tally. (Charging it needs Stripe — the rule and the tally are built.)
-6. **Real coaches, not emoji.** Eight video avatars (woman/man × 20s–50s), filterable in the picker, each with
-   an intro clip. The call screen puts them on camera.
+6. **Real coaches, not emoji.** Twelve video avatars, 20s–60s, six women and six men, visibly diverse and each
+   with their own coaching methodology and voice guide (`server/shared/voices/`). Filterable in the picker, each
+   with an intro clip. The call screen puts them on camera.
 
 ## Features
 

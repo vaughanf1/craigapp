@@ -11,6 +11,7 @@ import { localParts as lp } from '../lib/time.ts'
 import { localParts } from '../lib/time.ts'
 import { env } from '../lib/env.ts'
 import { requireUser, requireProfile, type Env } from './middleware.ts'
+import { speak, voiceStats } from '../audio/speak.ts'
 
 const app = new Hono<Env>()
 app.use('*', requireUser)
@@ -35,6 +36,27 @@ app.post('/call-now', async (c) => {
 })
 
 app.get('/deliveries', (c) => c.json(repo.listDeliveries(c.get('user').id)))
+
+/**
+ * The coach's voice for one line. 200 + audio when the provider served it (from
+ * cache or fresh); 204 + X-Voice-Fallback when the app should use browser speech.
+ */
+app.post('/speak', async (c) => {
+  const user = requireProfile(c)
+  const body = z.object({ text: z.string().min(1).max(2000) }).safeParse(await c.req.json())
+  if (!body.success) return c.json({ error: 'Invalid text' }, 400)
+  const r = await speak({ userId: user.id, coachId: user.profile.coachId, text: body.data.text })
+  if (!r.ok) return c.body(null, 204, { 'X-Voice-Fallback': r.reason })
+  return c.body(r.audio.buffer.slice(r.audio.byteOffset, r.audio.byteOffset + r.audio.byteLength) as ArrayBuffer, 200, {
+    'Content-Type': r.mime,
+    'Cache-Control': 'private, max-age=86400',
+    'X-Voice-Cached': r.cached ? '1' : '0',
+    'X-Voice-Cost-Micro': String(r.costMicro),
+  })
+})
+
+/** What voice is costing: this user this month and today, and the service against its budget */
+app.get('/speak/stats', (c) => c.json(voiceStats(c.get('user').id)))
 
 /** Call limits, so the in-app call keeps to the same rules as the phone call */
 app.get('/call-limits', (c) => c.json(env.call))

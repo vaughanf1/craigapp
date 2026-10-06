@@ -7,11 +7,11 @@
     "node": ">=22.18"
   },
   "scripts": {
-    "dev": "node --watch --no-warnings=ExperimentalWarning src/index.ts",
-    "start": "node --no-warnings=ExperimentalWarning src/index.ts",
+    "dev": "node --env-file-if-exists=.env --watch --no-warnings=ExperimentalWarning src/index.ts",
+    "start": "node --env-file-if-exists=.env --no-warnings=ExperimentalWarning src/index.ts",
     "typecheck": "tsc -p tsconfig.json",
     "test": "vitest run",
-    "vapid": "node --no-warnings=ExperimentalWarning scripts/vapid.ts"
+    "vapid": "node --env-file-if-exists=.env --no-warnings=ExperimentalWarning scripts/vapid.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.111.0",

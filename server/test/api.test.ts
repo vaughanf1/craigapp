@@ -8,6 +8,7 @@ import * as repo from '../src/lib/repo.ts'
 import { dueNow, tick } from '../src/scheduler.ts'
 import { remember } from '../src/coach/memory.ts'
 import { localParts } from '../src/lib/time.ts'
+import { setProviderForTests } from '../src/audio/speak.ts'
 
 /** A stand-in for Claude: chat replies echo, structured calls return canned objects */
 const parseMock = vi.fn()
@@ -83,6 +84,27 @@ describe('profile, schedule, data', () => {
 })
 
 describe('coach brain', () => {
+  it('speaks a line in the coach\'s voice, and tells the app to use browser speech when it can\'t', async () => {
+    setProviderForTests(null)
+    const off = await api('/coach/speak', { method: 'POST', body: JSON.stringify({ text: 'Morning. Scoreboard time.' }) }, token)
+    expect(off.status).toBe(204)
+    expect(off.headers.get('x-voice-fallback')).toBe('no-provider')
+
+    setProviderForTests({ id: 'fake', model: 'fake-1', synthesize: async () => ({ audio: new Uint8Array([1, 2, 3, 4]), mime: 'audio/mpeg' }) })
+    const on = await api('/coach/speak', { method: 'POST', body: JSON.stringify({ text: 'Morning. Scoreboard time.' }) }, token)
+    expect(on.status).toBe(200)
+    expect(on.headers.get('content-type')).toBe('audio/mpeg')
+    expect(on.headers.get('x-voice-cached')).toBe('0')
+    expect(new Uint8Array(await on.arrayBuffer())).toEqual(new Uint8Array([1, 2, 3, 4]))
+
+    const again = await api('/coach/speak', { method: 'POST', body: JSON.stringify({ text: 'Morning.  Scoreboard time.' }) }, token)
+    expect(again.headers.get('x-voice-cached')).toBe('1')
+    const stats = await (await api('/coach/speak/stats', {}, token)).json() as any
+    expect(stats.user.month.requests).toBe(3)
+    expect(stats.user.month.fallbacks).toBe(1)
+    setProviderForTests(null)
+  })
+
   it('answers a chat message with the persona and the user\'s context in the prompt', async () => {
     createMock.mockResolvedValueOnce({ stop_reason: 'end_turn', content: [{ type: 'text', text: 'Porridge is a great start, Craig. What\'s the plan for lunch?' }] })
     const r = await api('/coach/message', { method: 'POST', body: JSON.stringify({ text: 'Had porridge for breakfast' }) }, token)

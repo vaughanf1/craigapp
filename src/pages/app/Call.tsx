@@ -4,7 +4,8 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { uid, useStore, currentStreak } from '../../lib/store'
 import { getCoach } from '../../data/coaches'
 import { api } from '../../lib/api'
-import { coachReply, greeting, morningKickoff, speakAsync, stopSpeaking, streakPraise } from '../../lib/coach'
+import { coachReply, greeting, morningKickoff, streakPraise } from '../../lib/coach'
+import { speakAsync, stopSpeaking } from '../../lib/voice'
 import { getSpeechRecognition, listenOnce } from '../../lib/speech'
 import { CoachFace, CoachVideo } from '../../components/CoachFace'
 
@@ -132,10 +133,10 @@ export default function Call() {
       addChat({ id: uid(), from: 'coach', text, timestamp: Date.now() })
       if (mutedRef.current) return
       setSpeaking(true)
-      await speakAsync(text, profile.accent, coach.gender)
+      await speakAsync(text, coach, profile.accent)
       setSpeaking(false)
     },
-    [addChat, profile.accent, coach.gender],
+    [addChat, profile.accent, coach],
   )
 
   const listen = useCallback(async () => {

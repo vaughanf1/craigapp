@@ -29,9 +29,10 @@ export function createApp() {
     },
     allowHeaders: ['Authorization', 'Content-Type'],
     allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    exposeHeaders: ['X-Voice-Cached', 'X-Voice-Cost-Micro', 'X-Voice-Fallback'],
   }))
 
-  app.get('/health', (c) => c.json({ ok: true, version: '1.3.0', brain: brainStatus(), push: env.vapid.enabled, calls: env.twilio.enabled }))
+  app.get('/health', (c) => c.json({ ok: true, version: '1.3.0', brain: brainStatus(), push: env.vapid.enabled, calls: env.twilio.enabled, voice: env.tts.enabled ? 'elevenlabs' : 'browser' }))
   app.route('/auth', auth)
   app.route('/me', me)
   app.route('/coach', coach)

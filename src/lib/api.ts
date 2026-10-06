@@ -123,6 +123,7 @@ export interface MeResponse {
 }
 
 export const api = {
+  isSignedIn: () => Boolean(getToken()),
   /** True when a server is configured for this build */
   connected: Boolean(BASE),
   hasToken: () => Boolean(getToken()),
@@ -170,6 +171,19 @@ export const api = {
     deleteTask: (id: string) => del<{ ok: true }>(`/coach/tasks/${id}`),
     reviews: () => request<{ reviews: PlanReview[] }>('/coach/reviews'),
     message: (text: string, channel: 'chat' | 'call' = 'chat', mode?: 'wrap-up') => post<{ reply: string }>('/coach/message', { text, channel, mode }),
+    /** The coach's voice for one line: audio, or null when the app should use browser speech (204 + X-Voice-Fallback) */
+    speak: async (text: string): Promise<Blob | null> => {
+      const token = getToken()
+      if (!token) return null
+      const res = await fetch(`${BASE}/coach/speak`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ text }),
+      })
+      if (res.status !== 200) return null
+      return res.blob()
+    },
+    voiceStats: () => request<{ provider: string; user: { month: { requests: number; cached: number; chars: number; costUsd: number; fallbacks: number }; todayChars: number; dailyCapChars: number }; global: { month: { chars: number; costUsd: number; budgetUsd: number } } }>('/coach/speak/stats'),
     callLimits: () => request<{ maxSeconds: number; wrapUpSeconds: number; maxTurns: number }>('/coach/call-limits'),
     callNow: (channels: ('push' | 'call')[]) => post<Delivery>('/coach/call-now', { channels }),
     deliveries: () => request<Delivery[]>('/coach/deliveries'),

@@ -5,7 +5,7 @@ import { CoachFace } from './CoachFace'
 import { useCoachIntro } from './CoachIntro'
 import type { CoachAgeBand, CoachGender } from '../lib/types'
 
-const AGES: CoachAgeBand[] = ['20s', '30s', '40s', '50s']
+const AGES: CoachAgeBand[] = ['20s', '30s', '40s', '50s', '60s']
 
 /**
  * Pick your coach the way you'd pick a PT: who do you want in your corner?

@@ -5,7 +5,7 @@ import { todayKey, useStore } from '../../lib/store'
 import { getCoach } from '../../data/coaches'
 import { api, type Schedule } from '../../lib/api'
 import { buildLocalRoadmap } from '../../lib/roadmap'
-import { speak, stopSpeaking } from '../../lib/coach'
+import { speak, stopSpeaking } from '../../lib/voice'
 import { CoachFace } from '../../components/CoachFace'
 import { RoadmapTimeline, DailyActions } from '../../components/Roadmap'
 import { Card, PrimaryButton } from '../../components/ui'
@@ -52,7 +52,7 @@ export default function PlanIntro() {
       }
       setRoadmap(roadmap)
       setStage('plan')
-      if (profile.voiceEnabled) speak(`Right, ${profile.name}. ${roadmap.summary}`, profile.accent, coach.gender)
+      if (profile.voiceEnabled) speak(`Right, ${profile.name}. ${roadmap.summary}`, coach, profile.accent)
     }
     // A beat of "thinking" so the plan feels worked out, not instant
     const t = setTimeout(build, online ? 0 : 1800)

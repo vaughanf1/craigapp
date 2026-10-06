@@ -178,4 +178,30 @@ CREATE TABLE IF NOT EXISTS deliveries (
   answered_at INTEGER
 );
 CREATE UNIQUE INDEX IF NOT EXISTS deliveries_slot ON deliveries(user_id, date, slot) WHERE slot != 'manual';
+
+CREATE TABLE IF NOT EXISTS tts_cache (
+  key TEXT PRIMARY KEY,          -- sha256(provider|model|voice|format|normalised text)
+  coach_id TEXT NOT NULL,
+  voice_id TEXT NOT NULL,
+  mime TEXT NOT NULL,
+  audio BLOB NOT NULL,
+  chars INTEGER NOT NULL,
+  created_at INTEGER NOT NULL,
+  hits INTEGER NOT NULL DEFAULT 0
+);
+CREATE TABLE IF NOT EXISTS tts_log (
+  id TEXT PRIMARY KEY,
+  user_id TEXT,
+  coach_id TEXT NOT NULL,
+  provider TEXT NOT NULL,        -- 'elevenlabs' | 'browser' (fallback)
+  voice_id TEXT,
+  chars INTEGER NOT NULL,        -- characters billed (0 on cache hit or fallback)
+  cached INTEGER NOT NULL,
+  cost_micro INTEGER NOT NULL,   -- micro-USD
+  ms INTEGER NOT NULL,
+  reason TEXT,                   -- fallback reason, when provider = 'browser'
+  ts INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS tts_log_user_ts ON tts_log(user_id, ts);
+CREATE INDEX IF NOT EXISTS tts_log_ts ON tts_log(ts);
 `

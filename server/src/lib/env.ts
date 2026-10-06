@@ -43,6 +43,24 @@ export const env = {
     maxTurns: Number(e.CALL_MAX_TURNS ?? 6),
   },
 
+  /**
+   * Coach voices (text-to-speech). Provider-agnostic shape; ElevenLabs is the first implementation.
+   * No key → every request falls back to the browser's own speech. Caps are in characters because
+   * that is how providers bill; the budget is the monthly ceiling in USD across all users.
+   */
+  tts: {
+    elevenLabsKey: e.ELEVENLABS_API_KEY ?? '',
+    model: e.ELEVENLABS_MODEL ?? 'eleven_flash_v2_5',
+    /** USD per 1M characters, for the cost log. ElevenLabs Flash API list price is 40. */
+    costPer1MUsd: Number(e.TTS_COST_PER_1M_USD ?? 40),
+    perUserDailyChars: Number(e.TTS_USER_DAILY_CHARS ?? 15_000),
+    globalDailyChars: Number(e.TTS_GLOBAL_DAILY_CHARS ?? 1_000_000),
+    monthlyBudgetUsd: Number(e.TTS_MONTHLY_BUDGET_USD ?? 100),
+    get enabled() {
+      return Boolean(this.elevenLabsKey)
+    },
+  },
+
   isProd: e.NODE_ENV === 'production',
 }
 

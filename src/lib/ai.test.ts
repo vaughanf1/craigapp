@@ -30,7 +30,7 @@ describe('buildSystemPrompt', () => {
 
   it('embeds the coach persona', () => {
     expect(prompt).toContain('Margaret')
-    expect(prompt).toContain('Wise & kind')
+    expect(prompt).toContain(getCoach('margaret').style)
   })
 
   it('embeds the goal, benefits and obstacles (the memory)', () => {

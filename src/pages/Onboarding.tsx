@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { GOAL_AREAS } from '../data/goalAreas'
 import { getCoach } from '../data/coaches'
 import { useStore } from '../lib/store'
-import { speak } from '../lib/coach'
+import { speak } from '../lib/voice'
 import { suggestedCalorieTarget } from '../lib/health'
 import { api } from '../lib/api'
 import { formatWeight, halfwayKg } from '../lib/units'
@@ -464,8 +464,8 @@ export default function Onboarding() {
                                 a === 'british'
                                   ? `Hello ${name || 'there'}, I'm ${coach.name}. Let's be more, together.`
                                   : `Hey ${name || 'there'}, I'm ${coach.name}. Let's be more, together.`,
+                                coach,
                                 a,
-                                coach.gender,
                               )
                           }}
                           className={`rounded-3xl bg-white p-5 transition-all ${

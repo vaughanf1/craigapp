@@ -2,7 +2,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useStore } from '../../lib/store'
 import { getCoach } from '../../data/coaches'
 import { GOAL_AREAS } from '../../data/goalAreas'
-import { speak } from '../../lib/coach'
+import { speak } from '../../lib/voice'
 import { api } from '../../lib/api'
 import { Card, Disclaimer, Rise } from '../../components/ui'
 import CoachPicker from '../../components/CoachPicker'
@@ -18,7 +18,7 @@ export default function Settings() {
 
   const previewVoice = (accent: VoiceAccent) => {
     const c = getCoach(profile.coachId)
-    speak(`Hello ${profile.name}, this is how I'll sound. Let's be more, together.`, accent, c.gender)
+    speak(`Hello ${profile.name}, this is how I'll sound. Let's be more, together.`, c, accent)
   }
 
   return (
@@ -37,7 +37,7 @@ export default function Settings() {
               onChange={(id) => {
                 updateProfile({ coachId: id })
                 const c = getCoach(id)
-                if (profile.voiceEnabled) speak(`Hi ${profile.name}, ${c.name} here. Let's do this together.`, profile.accent, c.gender)
+                if (profile.voiceEnabled) speak(`Hi ${profile.name}, ${c.name} here. Let's do this together.`, c, profile.accent)
               }}
             />
           </div>

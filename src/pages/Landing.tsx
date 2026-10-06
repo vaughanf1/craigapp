@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { GOAL_AREAS } from '../data/goalAreas'
-import { COACHES } from '../data/coaches'
+import { COACHES, getCoach } from '../data/coaches'
 import { CoachAvatar, Disclaimer, Rise } from '../components/ui'
 import Logo from '../components/Logo'
 
@@ -107,7 +107,7 @@ export default function Landing() {
           <div className="rounded-4xl bg-[#0b0b0f] p-6 text-center text-white shadow-float">
             <p className="text-[11px] uppercase tracking-[0.2em] text-white/50">Be More · coach call</p>
             <div className="mx-auto mt-5 w-fit">
-              <CoachAvatar coach={COACHES[6]} size="xl" className="ring-4 ring-white/15" />
+              <CoachAvatar coach={getCoach('margaret')} size="xl" className="ring-4 ring-white/15" />
             </div>
             <p className="mt-4 text-2xl font-semibold">Margaret</p>
             <p className="text-white/60">Incoming call · 9:00</p>
@@ -201,8 +201,8 @@ export default function Landing() {
             Pick your coach.
           </h2>
           <p className="mx-auto mt-4 max-w-xl text-center text-lg text-ink-secondary">
-            Eight coaches. British or American voice. Encouraging, uplifting — and always bringing
-            you back on track.
+            Twelve coaches, twelve genuinely different ways of coaching. Pick the one you'd actually
+            listen to — and who'll bring you back on track.
           </p>
         </Rise>
         <div className="mt-14 grid grid-cols-2 gap-5 sm:grid-cols-4">
