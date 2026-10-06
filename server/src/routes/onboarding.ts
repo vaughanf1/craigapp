@@ -75,7 +75,9 @@ app.post('/suggest', async (c) => {
     input.goalWeightKg ? `Goal weight: ${formatWeight(input.goalWeightKg, unit)}` : '',
   ].filter(Boolean).join('\n')
 
-  const out = await completeJson({
+  let out: SuggestionsT | null = null
+  try {
+    out = await completeJson({
     schema: Suggestions,
     name: 'onboarding_suggestions',
     maxTokens: 1200,
@@ -85,7 +87,12 @@ app.post('/suggest', async (c) => {
       `The person is still onboarding — there is no history yet. You have only what is below. Read the goal closely and respond to THAT goal, not to the category. Everything you suggest must be something this specific person could tick or type. Do not invent numbers they did not give; do the arithmetic on the ones they did.\n\n${facts}`,
     ],
     messages: [{ role: 'user', content: 'Read my goal and help me build the plan around it.' }],
-  })
+    })
+  } catch (err) {
+    // The brain being unavailable must never break onboarding: the app falls back to its built-in suggestions
+    console.error('[onboarding] brain unavailable:', (err as Error).message.slice(0, 200))
+    return c.json({ error: 'The coach could not read that just now' }, 503)
+  }
   if (!out) return c.json({ error: 'The coach could not read that just now' }, 503)
   cache.set(key, out)
   if (cache.size > 500) cache.delete(cache.keys().next().value!)
