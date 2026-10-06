@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { GOAL_AREAS } from '../data/goalAreas'
@@ -6,13 +6,13 @@ import { getCoach } from '../data/coaches'
 import { useStore } from '../lib/store'
 import { speak } from '../lib/voice'
 import { suggestedCalorieTarget } from '../lib/health'
-import { api } from '../lib/api'
+import { api, type OnboardingSuggestions } from '../lib/api'
 import { formatWeight, halfwayKg } from '../lib/units'
 import CoachPicker from '../components/CoachPicker'
 import DealExplainer from '../components/DealExplainer'
 import type { GoalAreaId, VoiceAccent } from '../lib/types'
 import TagInput from '../components/TagInput'
-import { CoachAvatar, Disclaimer, PrimaryButton, ProgressDots, SecondaryButton } from '../components/ui'
+import { Card, CoachAvatar, Disclaimer, PrimaryButton, ProgressDots, SecondaryButton } from '../components/ui'
 import Logo from '../components/Logo'
 
 /** Common obstacle/benefit suggestions per Craig's examples */
@@ -55,6 +55,11 @@ export default function Onboarding() {
   const [accent, setAccent] = useState<VoiceAccent>('british')
   const [checkInsPerDay, setCheckInsPerDay] = useState<1 | 2 | 3 | 4 | 5>(3)
 
+  /** The coach's reading of the goal: specific suggestions for the plan step (static chips when offline) */
+  const [suggest, setSuggest] = useState<OnboardingSuggestions | null>(null)
+  const [suggesting, setSuggesting] = useState(false)
+  const suggestedFor = useRef('')
+
   const [sex, setSex] = useState<'male' | 'female' | undefined>(undefined)
   const [heightCm, setHeightCm] = useState('')
   const [weightKg, setWeightKg] = useState('')
@@ -94,6 +99,29 @@ export default function Onboarding() {
     metrics.weightKg && metrics.goalWeightKg && metrics.goalWeightKg < metrics.weightKg
       ? formatWeight(halfwayKg(metrics.weightKg, metrics.goalWeightKg), weightUnit)
       : null
+
+  useEffect(() => {
+    if (steps[step] !== 'plan' || !api.connected || !statement.trim()) return
+    const key = JSON.stringify([statement.trim(), targetDate, areaIds, coachId, metrics.weightKg, metrics.goalWeightKg])
+    if (suggestedFor.current === key) return
+    suggestedFor.current = key
+    setSuggesting(true)
+    api.onboarding
+      .suggest({
+        name: name.trim() || undefined,
+        statement: statement.trim(),
+        targetDate: targetDate || undefined,
+        areaIds,
+        coachId: coachId ?? undefined,
+        weightKg: metrics.weightKg,
+        goalWeightKg: metrics.goalWeightKg,
+        weightUnit,
+      })
+      .then(setSuggest)
+      .catch(() => setSuggest(null))
+      .finally(() => setSuggesting(false))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step])
 
   const canNext = (() => {
     switch (steps[step]) {
@@ -294,9 +322,30 @@ export default function Onboarding() {
               <section>
                 <h1 className="display-tight text-3xl font-semibold sm:text-4xl">Build your plan.</h1>
                 <p className="mt-3 text-ink-secondary">
-                  The 7-step framework: know what’s in it for you, who’s helping, what’s in the way,
-                  and how you’ll get there. Add what applies — you can edit later.
+                  Know what’s in it for you, who’s helping, what’s in the way, and how you’ll get there.
+                  Tap what applies, add your own — you can edit later.
                 </p>
+                {api.connected && (suggesting || suggest) && (
+                  <Card className="mt-6 flex items-start gap-3 p-4">
+                    {coach ? <CoachAvatar coach={coach} size="md" /> : <span className="h-10 w-10 shrink-0 rounded-full bg-black/[0.06]" />}
+                    <div className="min-w-0">
+                      <p className="text-xs font-semibold uppercase tracking-wider text-ink-secondary">{coach?.name ?? 'Your coach'} read your goal</p>
+                      {suggesting && !suggest ? (
+                        <p className="mt-1 text-sm text-ink-secondary">Reading “{statement.trim().slice(0, 60)}{statement.trim().length > 60 ? '…' : ''}”…</p>
+                      ) : (
+                        <>
+                          <p className="mt-1 text-[15px] leading-relaxed">{suggest?.reflection}</p>
+                          {suggest?.sharper && (
+                            <p className="mt-2 text-sm text-coral">
+                              {suggest.sharper}{' '}
+                              <button onClick={() => setStep((s) => s - 1)} className="font-medium underline">Sharpen it</button>
+                            </p>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  </Card>
+                )}
                 <div className="mt-8 space-y-7">
                   <div>
                     <h3 className="mb-2 font-semibold">💎 What’s in it for you?</h3>
@@ -304,7 +353,7 @@ export default function Onboarding() {
                       values={benefits}
                       onChange={setBenefits}
                       placeholder="A benefit of achieving this goal…"
-                      suggestions={BENEFIT_SUGGESTIONS[area.id] ?? []}
+                      suggestions={suggest?.benefits ?? BENEFIT_SUGGESTIONS[area.id] ?? []}
                     />
                   </div>
                   <div>
@@ -313,7 +362,7 @@ export default function Onboarding() {
                       values={obstacles}
                       onChange={setObstacles}
                       placeholder="What might get in your way…"
-                      suggestions={OBSTACLE_SUGGESTIONS[area.id] ?? []}
+                      suggestions={suggest?.obstacles ?? OBSTACLE_SUGGESTIONS[area.id] ?? []}
                     />
                   </div>
                   <div>
@@ -322,6 +371,7 @@ export default function Onboarding() {
                       values={supporters}
                       onChange={setSupporters}
                       placeholder="e.g. my partner, running club, past quitters…"
+                      suggestions={suggest?.supporters ?? []}
                     />
                   </div>
                   <div>
@@ -330,10 +380,21 @@ export default function Onboarding() {
                       values={skills}
                       onChange={setSkills}
                       placeholder="What do you need to learn…"
+                      suggestions={suggest?.skills ?? []}
                     />
                   </div>
                   <div>
-                    <h3 className="mb-2 font-semibold">🗺️ Plan of action</h3>
+                    <div className="mb-2 flex items-baseline justify-between gap-3">
+                      <h3 className="font-semibold">🗺️ Plan of action</h3>
+                      {suggest?.actionPlanDraft && actionPlan.trim() !== suggest.actionPlanDraft.trim() && (
+                        <button onClick={() => setActionPlan(suggest.actionPlanDraft)} className="text-sm font-medium text-accent">
+                          Use {coach?.name ?? 'the coach'}’s draft
+                        </button>
+                      )}
+                    </div>
+                    {suggest?.actionPlanDraft && !actionPlan.trim() && (
+                      <p className="mb-2 rounded-2xl bg-accent/[0.06] px-4 py-3 text-sm leading-relaxed text-ink">{suggest.actionPlanDraft}</p>
+                    )}
                     <textarea
                       value={actionPlan}
                       onChange={(e) => setActionPlan(e.target.value)}

@@ -9,6 +9,7 @@ import { dueNow, tick } from '../src/scheduler.ts'
 import { remember } from '../src/coach/memory.ts'
 import { localParts } from '../src/lib/time.ts'
 import { setProviderForTests } from '../src/audio/speak.ts'
+import { INTAKE_FIELDS } from '../src/coach/intake.ts'
 
 /** A stand-in for Claude: chat replies echo, structured calls return canned objects */
 const parseMock = vi.fn()
@@ -84,6 +85,24 @@ describe('profile, schedule, data', () => {
 })
 
 describe('coach brain', () => {
+  it('reads the goal during onboarding and suggests a plan specific to it (no account needed)', async () => {
+    const canned = { reflection: 'Two stone by May: a pound a week, no more.', sharper: null, benefits: ['Fit the suit', 'Up the stairs without stopping', 'Sleep better', 'Knees stop aching'], obstacles: ['Friday office cake', 'Takeaway when late home', 'Weekend wine', 'Skipping breakfast'], supporters: ['Partner', 'Walking group', 'Terry'], skills: ['Portion sizes', 'Reading labels', 'A 20-minute cook'], actionPlanDraft: 'Halfway by February. Walk four mornings a week. Log every meal before you eat it.' }
+    parseMock.mockResolvedValueOnce({ parsed_output: canned })
+    const r = await api('/onboarding/suggest', { method: 'POST', body: JSON.stringify({ name: 'Craig', statement: 'Lose two stone for my daughter\'s wedding', targetDate: '2027-05-02', areaIds: ['health'], coachId: 'grace', weightKg: 83.5, goalWeightKg: 70.8 }) })
+    expect(r.status).toBe(200)
+    expect(await r.json()).toEqual(canned)
+    const call = parseMock.mock.calls.at(-1)![0]
+    expect(call.system[0].text).toContain('You are Grace')
+    expect(call.system[1].text).toContain("Lose two stone for my daughter's wedding")
+    expect(call.system[1].text).toContain('Target date: 2027-05-02')
+    expect(call.system[1].text).toContain('13 stone 2')
+    // identical input is served from cache — the brain is not asked twice
+    const again = await api('/onboarding/suggest', { method: 'POST', body: JSON.stringify({ name: 'Craig', statement: 'Lose two stone for my daughter\'s wedding', targetDate: '2027-05-02', areaIds: ['health'], coachId: 'grace', weightKg: 83.5, goalWeightKg: 70.8 }) })
+    expect(again.status).toBe(200)
+    expect(parseMock).toHaveBeenCalledTimes(1)
+    expect((await api('/onboarding/suggest', { method: 'POST', body: JSON.stringify({ statement: 'x' }) })).status).toBe(400)
+  })
+
   it('speaks a line in the coach\'s voice, and tells the app to use browser speech when it can\'t', async () => {
     setProviderForTests(null)
     const off = await api('/coach/speak', { method: 'POST', body: JSON.stringify({ text: 'Morning. Scoreboard time.' }) }, token)
@@ -471,7 +490,7 @@ describe('guided discovery', () => {
     await api('/coach/message', { method: 'POST', body: JSON.stringify({ text: 'Morning' }) }, token)
     const ctx = createMock.mock.calls.at(-1)![0].system[1].text
     expect(ctx).toContain('DISCOVERY')
-    expect(ctx).toContain('Still to learn (11)')
+    expect(ctx).toContain(`Still to learn (${INTAKE_FIELDS.length})`)
     expect(ctx).toContain('ask ONE question to learn: why this goal, really')
     expect(createMock.mock.calls.at(-1)![0].system[0].text).toContain('Diagnose before you prescribe')
     expect(createMock.mock.calls.at(-1)![0].system[0].text).toContain('NOT A YES-MAN')
@@ -488,8 +507,8 @@ describe('guided discovery', () => {
     await api('/coach/message', { method: 'POST', body: JSON.stringify({ text: 'Morning' }) }, token)
     const ctx = createMock.mock.calls.at(-1)![0].system[1].text
     expect(ctx).toContain("- Why this goal, really: His daughter's wedding")
-    expect(ctx).toContain('Still to learn (10)')
-    expect(ctx).toContain('ask ONE question to learn: what success looks like')
+    expect(ctx).toContain(`Still to learn (${INTAKE_FIELDS.length - 1})`)
+    expect(ctx).toContain(`ask ONE question to learn: ${INTAKE_FIELDS[1].label.toLowerCase()}`)
   })
 })
 

@@ -56,6 +56,16 @@ const post = <T,>(path: string, data?: unknown) => request<T>(path, { method: 'P
 const put = <T,>(path: string, data: unknown) => request<T>(path, { method: 'PUT', body: JSON.stringify(data) })
 const del = <T,>(path: string) => request<T>(path, { method: 'DELETE' })
 
+export interface OnboardingSuggestions {
+  reflection: string
+  sharper: string | null
+  benefits: string[]
+  obstacles: string[]
+  supporters: string[]
+  skills: string[]
+  actionPlanDraft: string
+}
+
 export interface ServerUser {
   id: string
   phone: string
@@ -159,6 +169,12 @@ export const api = {
   deleteAccount: async () => {
     await del('/me')
     setToken(null)
+  },
+
+  onboarding: {
+    /** The coach reads the typed goal and suggests a plan specific to it. Works before sign-in. */
+    suggest: (input: { name?: string; statement: string; targetDate?: string; areaIds: string[]; coachId?: string; weightKg?: number; goalWeightKg?: number; weightUnit?: 'stone' | 'lbs' | 'kg' }) =>
+      post<OnboardingSuggestions>('/onboarding/suggest', input),
   },
 
   coach: {

@@ -8,6 +8,7 @@ import me from './routes/me.ts'
 import coach from './routes/coach.ts'
 import push from './routes/push.ts'
 import twilio from './routes/twilio.ts'
+import onboarding from './routes/onboarding.ts'
 import { modelName, provider } from './coach/llm.ts'
 
 /** Which model answers, or 'off' when neither provider has a key (scripted fallbacks only) */
@@ -38,6 +39,7 @@ export function createApp() {
   app.route('/coach', coach)
   app.route('/push', push)
   app.route('/twilio', twilio)
+  app.route('/onboarding', onboarding)
 
   app.onError((err, c) => {
     if (err instanceof HttpError) return c.json({ error: err.message }, err.status as 400)
