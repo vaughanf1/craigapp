@@ -18,6 +18,7 @@
  * (the same lines as the generation prompts in docs/coach-roster.md).
  */
 import { execFileSync } from 'node:child_process'
+import { createHash } from 'node:crypto'
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { COACHES } from '../shared/coaches.ts'
@@ -154,11 +155,31 @@ for (const c of targets) {
     out = await poll(`/v3/lipsyncs/${job.lipsync_id ?? job.id}`)
   } else if (mode === 'prompt') {
     // A brand-new synthetic character from the roster's description, then that look speaks the line
-    const look = await api<{ look_id?: string; id?: string; avatar_id?: string }>('/v3/avatars', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ type: 'prompt', prompt: FACE_PROMPTS[c.id], aspect_ratio: '9:16', name: `Be More — ${c.name}` }),
-    })
-    const lookId = look.look_id ?? look.avatar_id ?? look.id
+    // Reuse a look already generated for this coach (each generation is billed) before creating one
+    const lookName = `Be More — ${c.name}`
+    const mine = await api<{ id: string; name: string; status: string }[]>('/v3/avatars/looks?ownership=private&limit=50', { method: 'GET' })
+    let lookId = (Array.isArray(mine) ? mine : []).find((l) => l.name === lookName)?.id
+    if (lookId) console.log(`  reusing look ${lookId}`)
+    else {
+      const look = await api<Record<string, unknown>>('/v3/avatars', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'prompt', prompt: FACE_PROMPTS[c.id], aspect_ratio: '9:16', name: lookName }),
+      })
+      const pick = (o: unknown): string | undefined => {
+        if (!o || typeof o !== 'object') return undefined
+        const r = o as Record<string, unknown>
+        for (const k of ['look_id', 'id']) if (typeof r[k] === 'string') return r[k] as string
+        for (const v of Object.values(r)) { const f = Array.isArray(v) ? pick(v[0]) : pick(v); if (f) return f }
+        return undefined
+      }
+      lookId = pick(look)
+      if (!lookId) {
+        const again = await api<{ id: string; name: string }[]>('/v3/avatars/looks?ownership=private&limit=50', { method: 'GET' })
+        lookId = (Array.isArray(again) ? again : []).find((l) => l.name === lookName)?.id
+      }
+      if (!lookId) throw new Error(`${c.id}: could not find the new look id in ${JSON.stringify(look).slice(0, 300)}`)
+      console.log(`  created look ${lookId}`)
+    }
     let preview = ''
     for (let i = 0; i < 60; i++) {
       const r = await api<{ status: string; preview_image_url?: string; failure_message?: string }>(`/v3/avatars/looks/${lookId}`, { method: 'GET' })
@@ -193,7 +214,8 @@ for (const c of targets) {
   console.log(`\n  ✓ ${existing} (${out.duration?.toFixed(1) ?? '?'}s)`)
 
   // 4. Record it
-  manifest.clips[c.id] = { ...(manifest.clips[c.id] ?? {}), coachId: c.id, file: `coaches/${c.id}.mp4`, line, generatedWith: `${manifest.clips[c.id]?.generatedWith ?? (mode === 'prompt' ? 'heygen:prompt-to-avatar + avatar_iv' : 'heygen:image-to-video (avatar_iv)')}; dubbed via heygen:${mode === 'lipsync' ? 'lipsync-precision' : 'audio-driven render'}`, voiceId: c.voiceId, dubbed: true }
+  const finalBuf = readFileSync(existing)
+  manifest.clips[c.id] = { ...(manifest.clips[c.id] ?? {}), coachId: c.id, file: `coaches/${c.id}.mp4`, sha256: createHash('sha256').update(finalBuf).digest('hex'), bytes: finalBuf.byteLength, line, generatedWith: `${manifest.clips[c.id]?.generatedWith ?? (mode === 'prompt' ? 'heygen:prompt-to-avatar + avatar_iv' : 'heygen:image-to-video (avatar_iv)')}; dubbed via heygen:${mode === 'lipsync' ? 'lipsync-precision' : 'audio-driven render'}`, voiceId: c.voiceId, dubbed: true }
   writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n')
 }
 console.log('\nNow run: node --no-warnings=ExperimentalWarning scripts/intro-manifest.ts   (recomputes hashes; add --done once every coach is dubbed)')

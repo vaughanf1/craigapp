@@ -1,15 +1,8 @@
 {
   "updated": "2026-10-06",
   "dubbingDone": false,
-  "note": "PROVISIONAL (6 Oct 2026): voices exist for all 12 coaches and the in-app call uses them. The six existing clips still carry the voice the video model generated (not the call voice); the six new coaches have no clip yet. Re-dub + generation pipeline: HeyGen v3 (needs paid API credits). Flip dubbingDone to true after that pass; the manifest test then enforces clip\u2194voice.",
-  "missingClips": [
-    "fiona",
-    "karim",
-    "priya",
-    "arun",
-    "ken",
-    "grace"
-  ],
+  "note": "PROVISIONAL (6 Oct 2026): voices exist for all 12 coaches and the in-app call uses them. The six existing clips still carry the voice the video model generated (not the call voice); the six new coaches have no clip yet. Re-dub + generation pipeline: HeyGen v3 (needs paid API credits). Flip dubbingDone to true after that pass; the manifest test then enforces clip↔voice.",
+  "missingClips": [],
   "clips": {
     "maya": {
       "coachId": "maya",
@@ -51,6 +44,16 @@
       "voiceId": null,
       "dubbed": false
     },
+    "fiona": {
+      "coachId": "fiona",
+      "file": "coaches/fiona.mp4",
+      "sha256": "eff4d4993a27dfd07efc2b27c7a0c2ed7aa76c9b034f3186c015ef243372f7fd",
+      "bytes": 2676789,
+      "line": "Morning. I'm Fiona. Two boxes: done, not done. I only read the first one. Let's get you in it.",
+      "generatedWith": "heygen:prompt-to-avatar + avatar_iv; dubbed via heygen:audio-driven render",
+      "voiceId": "F9nfbmIzXjJMjWnRoVE4",
+      "dubbed": true
+    },
     "david": {
       "coachId": "david",
       "file": "coaches/david.mp4",
@@ -61,6 +64,26 @@
       "voiceId": null,
       "dubbed": false
     },
+    "karim": {
+      "coachId": "karim",
+      "file": "coaches/karim.mp4",
+      "sha256": "d06f30ae27022ece95cd432e57dfc61cf51b05d61f21cd3ed387fb6566229988",
+      "bytes": 1916840,
+      "line": "Hi, I'm Karim. Before anything else, one breath. Notice what's here. Then we decide. I'll be with you for both.",
+      "generatedWith": "heygen:prompt-to-avatar + avatar_iv; dubbed via heygen:audio-driven render",
+      "voiceId": "Z85d8izOCgLzIHeHO61T",
+      "dubbed": true
+    },
+    "priya": {
+      "coachId": "priya",
+      "file": "coaches/priya.mp4",
+      "sha256": "b9e7d6ee2bed8d049326fc4e11293cc24b524f74d285e2dfc7fa6c5549f40297",
+      "bytes": 1546648,
+      "line": "Alright, I'm Priya. I'm not above you, I'm beside you. You say what you'll do, I say when I'll check. Your word's on the table, and so's mine.",
+      "generatedWith": "heygen:prompt-to-avatar + avatar_iv; dubbed via heygen:audio-driven render",
+      "voiceId": "nAZ54GPVA8TsI7Iq7t7S",
+      "dubbed": true
+    },
     "margaret": {
       "coachId": "margaret",
       "file": "coaches/margaret.mp4",
@@ -70,6 +93,36 @@
       "generatedWith": "vidiq:gemini-omni-flash (8s, 720p, 9:16)",
       "voiceId": null,
       "dubbed": false
+    },
+    "arun": {
+      "coachId": "arun",
+      "file": "coaches/arun.mp4",
+      "sha256": "0c9fe9a02b0ba9cbda628a3cd7d224b3d26e267d6ad62efcad38f510e692b392",
+      "bytes": 1578120,
+      "line": "Hello, I'm Arun. We start at the finish line and walk back. Every goal gets a date, every date gets a job. Yours starts this week.",
+      "generatedWith": "heygen:prompt-to-avatar + avatar_iv; dubbed via heygen:audio-driven render",
+      "voiceId": "03HjyursVn3V1u5ZwmgQ",
+      "dubbed": true
+    },
+    "ken": {
+      "coachId": "ken",
+      "file": "coaches/ken.mp4",
+      "sha256": "ac13649b4340445ae49822157b7f55f3844831be8ae0b193af9fccd78f1e49ae",
+      "bytes": 2010347,
+      "line": "I'm Ken. Forty years around athletes taught me one thing. Build the base, recover on purpose, load a little more. Nobody peaks in week one.",
+      "generatedWith": "heygen:prompt-to-avatar + avatar_iv; dubbed via heygen:audio-driven render",
+      "voiceId": "nskPgv5qHOBG06yFAMEm",
+      "dubbed": true
+    },
+    "grace": {
+      "coachId": "grace",
+      "file": "coaches/grace.mp4",
+      "sha256": "fa24bb2ddf0081872cf0a0cd017bece2f16d34c16df492487db705353e52d57b",
+      "bytes": 2817379,
+      "line": "I'm Grace. Plain truth, plain food, early night. Nobody's coming to do it for you. Good, you've got hands. Come on.",
+      "generatedWith": "heygen:prompt-to-avatar + avatar_iv; dubbed via heygen:audio-driven render",
+      "voiceId": "F6SVkGXtItsEheXrNNFv",
+      "dubbed": true
     }
   }
 }
