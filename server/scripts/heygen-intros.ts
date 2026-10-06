@@ -2,6 +2,7 @@
  * Make every coach's intro clip speak in the coach's real voice, via HeyGen v3.
  *
  *   HEYGEN_API_KEY=... ELEVENLABS_API_KEY=... node --no-warnings=ExperimentalWarning scripts/heygen-intros.ts [coachId ...] [--dry]
+ *   ... scripts/heygen-intros.ts <coachId> --resume <jobId>   # a job already submitted (e.g. the script died while polling)
  *
  * Two paths, chosen per coach:
  *  - EXISTING clip in public/coaches/<id>.mp4  → precision lip-sync (POST /v3/lipsyncs): the approved face and
@@ -55,7 +56,9 @@ const FACE_PROMPTS: Record<string, string> = {
 
 const args = process.argv.slice(2)
 const dry = args.includes('--dry')
-const ids = args.filter((a) => !a.startsWith('--'))
+const resume = args[args.indexOf('--resume') + 1] && args.includes('--resume') ? args[args.indexOf('--resume') + 1] : null
+const ids = args.filter((a, i) => !a.startsWith('--') && args[i - 1] !== '--resume')
+if (resume && ids.length !== 1) throw new Error('--resume takes exactly one coachId')
 const targets = COACHES.filter((c) => (ids.length ? ids.includes(c.id) : true))
 const manifestPath = `${pub}manifest.json`
 const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'))
@@ -75,8 +78,19 @@ async function upload(file: string, type: string): Promise<string> {
 }
 
 async function poll(path: string): Promise<{ video_url: string; duration?: number }> {
+  let hiccups = 0
   for (let i = 0; i < 120; i++) {
-    const r = await api<{ status: string; video_url?: string; duration?: number; failure_message?: string; error?: unknown }>(path, { method: 'GET' })
+    let r: { status: string; video_url?: string; duration?: number; failure_message?: string; error?: unknown }
+    try {
+      r = await api(path, { method: 'GET' })
+      hiccups = 0
+    } catch (e) {
+      // The job is already paid for and running: a 5xx or dropped connection on a status read is not a reason to abandon it
+      if (++hiccups > 6) throw e
+      process.stdout.write(`\r  ${path} … status read failed (${(e as Error).message.slice(0, 60)}), retrying ${hiccups}/6   `)
+      await new Promise((res) => setTimeout(res, 15_000))
+      continue
+    }
     if (r.status === 'completed' && r.video_url) return { video_url: r.video_url, duration: r.duration }
     if (r.status === 'failed') throw new Error(`${path} failed: ${r.failure_message ?? JSON.stringify(r.error ?? r).slice(0, 300)}`)
     process.stdout.write(`\r  ${path} … ${r.status}            `)
@@ -121,6 +135,15 @@ function normalise(src: string, dest: string) {
 
 attachDb(openDb(':memory:'))
 
+/** 1. The line, in the exact voice that calls them — generated through the app's own speak(), uploaded as an asset */
+async function lineAudio(c: { id: string }, line: string): Promise<{ audioPath: string; audioId: string }> {
+  const r = await speak({ userId: null, coachId: c.id, text: line })
+  if (!r.ok) throw new Error(`${c.id}: speak fell back (${r.reason})`)
+  const audioPath = `${work}${c.id}-line.mp3`
+  writeFileSync(audioPath, r.audio)
+  return { audioPath, audioId: await upload(audioPath, 'audio/mpeg') }
+}
+
 for (const c of targets) {
   if (!c.voiceId) { console.log(`${c.id}: no voiceId yet, skipping`); continue }
   const existing = `${pub}${c.id}.mp4`
@@ -129,19 +152,15 @@ for (const c of targets) {
   if (!line) { console.log(`${c.id}: no intro line known, skipping`); continue }
   const mode = existsSync(existing) ? 'lipsync' : face ? 'image' : FACE_PROMPTS[c.id] ? 'prompt' : null
   if (!mode) { console.log(`${c.id}: no clip, no face image and no face prompt — nothing to do`); continue }
-  console.log(`\n${c.name} (${c.id}) → ${mode} in voice ${c.voiceId}\n  "${line}"`)
+  console.log(`\n${c.name} (${c.id}) → ${mode} in voice ${c.voiceId}${resume ? ` (resuming job ${resume})` : ''}\n  "${line}"`)
   if (dry) continue
-
-  // 1. The line, in the exact voice that calls them
-  const r = await speak({ userId: null, coachId: c.id, text: line })
-  if (!r.ok) throw new Error(`${c.id}: speak fell back (${r.reason})`)
-  const audioPath = `${work}${c.id}-line.mp3`
-  writeFileSync(audioPath, r.audio)
-  const audioId = await upload(audioPath, 'audio/mpeg')
 
   // 2. The job
   let out: { video_url: string; duration?: number }
-  if (mode === 'lipsync') {
+  if (resume) {
+    out = await poll(mode === 'lipsync' ? `/v3/lipsyncs/${resume}` : `/v3/videos/${resume}`)
+  } else if (mode === 'lipsync') {
+    const { audioPath } = await lineAudio(c, line)
     const fittedAudio = `${work}${c.id}-line-fitted.mp3`
     const fittedVideo = `${work}${c.id}-source-fitted.mp4`
     const secs = fitVideoToAudio(existing, audioPath, fittedAudio, fittedVideo)
@@ -154,6 +173,7 @@ for (const c of targets) {
     })
     out = await poll(`/v3/lipsyncs/${job.lipsync_id ?? job.id}`)
   } else if (mode === 'prompt') {
+    const { audioId } = await lineAudio(c, line)
     // A brand-new synthetic character from the roster's description, then that look speaks the line
     // Reuse a look already generated for this coach (each generation is billed) before creating one
     const lookName = `Be More — ${c.name}`
@@ -196,6 +216,7 @@ for (const c of targets) {
     })
     out = await poll(`/v3/videos/${job.video_id ?? job.id}`)
   } else {
+    const { audioId } = await lineAudio(c, line)
     const imageId = await upload(face!, face!.endsWith('.png') ? 'image/png' : 'image/jpeg')
     const job = await api<{ video_id?: string; id?: string }>('/v3/videos', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
