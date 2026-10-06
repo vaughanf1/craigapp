@@ -39,5 +39,8 @@ for (const c of COACHES) {
   }
 }
 const dubbingDone = process.argv.includes('--done') ? true : Boolean(previousDoc.dubbingDone)
-writeFileSync(manifestPath, JSON.stringify({ updated: new Date().toISOString().slice(0, 10), dubbingDone, note: previousDoc.note, clips }, null, 2) + '\n')
+/** Coaches on the roster with no intro clip on disk yet — the app shows a gradient placeholder for them */
+const missingClips = COACHES.filter((c) => !clips[c.id]).map((c) => c.id)
+writeFileSync(manifestPath, JSON.stringify({ updated: new Date().toISOString().slice(0, 10), dubbingDone, note: previousDoc.note, missingClips, clips }, null, 2) + '\n')
+console.log(missingClips.length ? `missing clips: ${missingClips.join(', ')}` : 'every coach has a clip')
 console.log(`manifest: ${Object.keys(clips).length} clips recorded`)

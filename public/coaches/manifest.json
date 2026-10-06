@@ -1,7 +1,15 @@
 {
   "updated": "2026-10-06",
   "dubbingDone": false,
-  "note": "dubbingDone=false: voices exist but intro clips have not been re-dubbed to them yet (needs HeyGen/Simli). Flip to true after the re-dub pass; the manifest test then enforces clip\u2194voice.",
+  "note": "PROVISIONAL (6 Oct 2026): voices exist for all 12 coaches and the in-app call uses them. The six existing clips still carry the voice the video model generated (not the call voice); the six new coaches have no clip yet. Re-dub + generation pipeline: HeyGen v3 (needs paid API credits). Flip dubbingDone to true after that pass; the manifest test then enforces clip\u2194voice.",
+  "missingClips": [
+    "fiona",
+    "karim",
+    "priya",
+    "arun",
+    "ken",
+    "grace"
+  ],
   "clips": {
     "maya": {
       "coachId": "maya",
