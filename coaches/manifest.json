@@ -1,0 +1,128 @@
+{
+  "updated": "2026-10-06",
+  "dubbingDone": false,
+  "note": "PROVISIONAL (6 Oct 2026): voices exist for all 12 coaches and the in-app call uses them. The six existing clips still carry the voice the video model generated (not the call voice); the six new coaches have no clip yet. Re-dub + generation pipeline: HeyGen v3 (needs paid API credits). Flip dubbingDone to true after that pass; the manifest test then enforces clip↔voice.",
+  "missingClips": [],
+  "clips": {
+    "maya": {
+      "coachId": "maya",
+      "file": "coaches/maya.mp4",
+      "sha256": "c94841403ecdf25c3fe2996ed71c3b63c0912a21b646aaf7f099ddfbc6197c66",
+      "bytes": 1972886,
+      "line": "Hi, I'm Maya! I'm going to be your coach. We're going to smash this together, one step at a time. Ready?",
+      "generatedWith": "vidiq:gemini-omni-flash (8s, 720p, 9:16)",
+      "voiceId": null,
+      "dubbed": false
+    },
+    "jake": {
+      "coachId": "jake",
+      "file": "coaches/jake.mp4",
+      "sha256": "32e3744d9dc27fca06d46239ab0fd5d0662f70c106527610df148f11a388ddc3",
+      "bytes": 2029469,
+      "line": "Yo! I'm Jake, and from today I'm your biggest fan. Every win, we celebrate. Every wobble, we bounce back. Let's go!",
+      "generatedWith": "vidiq:gemini-omni-flash (8s, 720p, 9:16)",
+      "voiceId": null,
+      "dubbed": false
+    },
+    "sophia": {
+      "coachId": "sophia",
+      "file": "coaches/sophia.mp4",
+      "sha256": "31750b4313ece24b750529d78a027ac13344a3b7dd626ed137765d67c9afd974",
+      "bytes": 1936171,
+      "line": "Hello, I'm Sophia. Life gets loud. I'll help you find your focus and keep it, one clear step each day. Shall we begin?",
+      "generatedWith": "vidiq:gemini-omni-flash (8s, 720p, 9:16)",
+      "voiceId": null,
+      "dubbed": false
+    },
+    "marcus": {
+      "coachId": "marcus",
+      "file": "coaches/marcus.mp4",
+      "sha256": "0ac1a2a6975afd7c80fdb4c44e2662cc03601fe0b7d76c00289140310c893e6f",
+      "bytes": 2088533,
+      "line": "I'm Marcus. No fluff, no excuses. Just a clear plan and honest encouragement. You tell me the goal, and we get it done.",
+      "generatedWith": "vidiq:gemini-omni-flash (8s, 720p, 9:16)",
+      "voiceId": null,
+      "dubbed": false
+    },
+    "fiona": {
+      "coachId": "fiona",
+      "file": "coaches/fiona.mp4",
+      "sha256": "eff4d4993a27dfd07efc2b27c7a0c2ed7aa76c9b034f3186c015ef243372f7fd",
+      "bytes": 2676789,
+      "line": "Morning. I'm Fiona. Two boxes: done, not done. I only read the first one. Let's get you in it.",
+      "generatedWith": "heygen:prompt-to-avatar + avatar_iv; dubbed via heygen:audio-driven render",
+      "voiceId": "F9nfbmIzXjJMjWnRoVE4",
+      "dubbed": true
+    },
+    "david": {
+      "coachId": "david",
+      "file": "coaches/david.mp4",
+      "sha256": "51117f02482d8efd6b0bbcdffaad2745b5752cc19aab8e6884f035ca910de6cf",
+      "bytes": 2080116,
+      "line": "Hi, I'm David. Consistent beats intense. Small wins every day, stacked up, change everything. Let's start with today.",
+      "generatedWith": "vidiq:gemini-omni-flash (8s, 720p, 9:16)",
+      "voiceId": null,
+      "dubbed": false
+    },
+    "karim": {
+      "coachId": "karim",
+      "file": "coaches/karim.mp4",
+      "sha256": "d06f30ae27022ece95cd432e57dfc61cf51b05d61f21cd3ed387fb6566229988",
+      "bytes": 1916840,
+      "line": "Hi, I'm Karim. Before anything else, one breath. Notice what's here. Then we decide. I'll be with you for both.",
+      "generatedWith": "heygen:prompt-to-avatar + avatar_iv; dubbed via heygen:audio-driven render",
+      "voiceId": "Z85d8izOCgLzIHeHO61T",
+      "dubbed": true
+    },
+    "priya": {
+      "coachId": "priya",
+      "file": "coaches/priya.mp4",
+      "sha256": "b9e7d6ee2bed8d049326fc4e11293cc24b524f74d285e2dfc7fa6c5549f40297",
+      "bytes": 1546648,
+      "line": "Alright, I'm Priya. I'm not above you, I'm beside you. You say what you'll do, I say when I'll check. Your word's on the table, and so's mine.",
+      "generatedWith": "heygen:prompt-to-avatar + avatar_iv; dubbed via heygen:audio-driven render",
+      "voiceId": "nAZ54GPVA8TsI7Iq7t7S",
+      "dubbed": true
+    },
+    "margaret": {
+      "coachId": "margaret",
+      "file": "coaches/margaret.mp4",
+      "sha256": "361e5f79e2d5c7080f9c2693022929719f42147f4fb3a5ba30409c5bc0bd78ec",
+      "bytes": 2038660,
+      "line": "Hello love, I'm Margaret. I believe in you before you do, and I'll remind you of that every day. Now, let's make a start.",
+      "generatedWith": "vidiq:gemini-omni-flash (8s, 720p, 9:16)",
+      "voiceId": null,
+      "dubbed": false
+    },
+    "arun": {
+      "coachId": "arun",
+      "file": "coaches/arun.mp4",
+      "sha256": "0c9fe9a02b0ba9cbda628a3cd7d224b3d26e267d6ad62efcad38f510e692b392",
+      "bytes": 1578120,
+      "line": "Hello, I'm Arun. We start at the finish line and walk back. Every goal gets a date, every date gets a job. Yours starts this week.",
+      "generatedWith": "heygen:prompt-to-avatar + avatar_iv; dubbed via heygen:audio-driven render",
+      "voiceId": "03HjyursVn3V1u5ZwmgQ",
+      "dubbed": true
+    },
+    "ken": {
+      "coachId": "ken",
+      "file": "coaches/ken.mp4",
+      "sha256": "ac13649b4340445ae49822157b7f55f3844831be8ae0b193af9fccd78f1e49ae",
+      "bytes": 2010347,
+      "line": "I'm Ken. Forty years around athletes taught me one thing. Build the base, recover on purpose, load a little more. Nobody peaks in week one.",
+      "generatedWith": "heygen:prompt-to-avatar + avatar_iv; dubbed via heygen:audio-driven render",
+      "voiceId": "nskPgv5qHOBG06yFAMEm",
+      "dubbed": true
+    },
+    "grace": {
+      "coachId": "grace",
+      "file": "coaches/grace.mp4",
+      "sha256": "fa24bb2ddf0081872cf0a0cd017bece2f16d34c16df492487db705353e52d57b",
+      "bytes": 2817379,
+      "line": "I'm Grace. Plain truth, plain food, early night. Nobody's coming to do it for you. Good, you've got hands. Come on.",
+      "generatedWith": "heygen:prompt-to-avatar + avatar_iv; dubbed via heygen:audio-driven render",
+      "voiceId": "F6SVkGXtItsEheXrNNFv",
+      "dubbed": true
+    }
+  }
+}
