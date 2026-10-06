@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { todayKey, useStore } from '../../lib/store'
 import { getCoach } from '../../data/coaches'
@@ -166,7 +166,8 @@ export default function PlanIntro() {
                 <p className="font-semibold">The price is the accountability</p>
                 <p className="mt-1 text-sm leading-relaxed text-ink-secondary">{pricingRule()}</p>
                 <p className="mt-2 text-sm leading-relaxed text-ink-secondary">
-                  Every unanswered call is logged. You'll always see the tally and what next month costs.
+                  Every unanswered call is logged. You'll always see the tally and what next month costs.{' '}
+                  <Link to="/deal" className="font-medium text-accent">How the price works →</Link>
                 </p>
               </Card>
               {!online && (

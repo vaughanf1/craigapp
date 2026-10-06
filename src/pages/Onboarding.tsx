@@ -9,6 +9,7 @@ import { suggestedCalorieTarget } from '../lib/health'
 import { api } from '../lib/api'
 import { formatWeight, halfwayKg } from '../lib/units'
 import CoachPicker from '../components/CoachPicker'
+import DealExplainer from '../components/DealExplainer'
 import type { GoalAreaId, VoiceAccent } from '../lib/types'
 import TagInput from '../components/TagInput'
 import { CoachAvatar, Disclaimer, PrimaryButton, ProgressDots, SecondaryButton } from '../components/ui'
@@ -29,7 +30,7 @@ const BENEFIT_SUGGESTIONS: Partial<Record<GoalAreaId, string[]>> = {
   family: ['Closer relationships', 'Happier home', 'Kids who feel valued'],
 }
 
-const BASE_STEPS = ['about', 'area', 'goal', 'plan', 'coach', 'voice', 'done'] as const
+const BASE_STEPS = ['about', 'area', 'goal', 'plan', 'coach', 'voice', 'deal', 'done'] as const
 type Step = (typeof BASE_STEPS)[number] | 'health'
 
 export default function Onboarding() {
@@ -107,6 +108,8 @@ export default function Onboarding() {
       case 'coach':
         return !!coachId
       case 'voice':
+        return true
+      case 'deal':
         return true
       default:
         return true
@@ -503,6 +506,12 @@ export default function Onboarding() {
                     </p>
                   </div>
                 </div>
+              </section>
+            )}
+
+            {steps[step] === 'deal' && (
+              <section>
+                <DealExplainer coachName={coach?.name} />
               </section>
             )}
 

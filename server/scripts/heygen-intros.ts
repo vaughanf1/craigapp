@@ -21,7 +21,7 @@ import { execFileSync } from 'node:child_process'
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { COACHES } from '../shared/coaches.ts'
-import { openDb, useDb } from '../src/lib/db.ts'
+import { openDb, useDb as attachDb } from '../src/lib/db.ts'
 import { speak } from '../src/audio/speak.ts'
 
 const KEY = process.env.HEYGEN_API_KEY
@@ -118,7 +118,7 @@ function normalise(src: string, dest: string) {
     '-c:a', 'aac', '-b:a', '96k', '-movflags', '+faststart', dest])
 }
 
-useDb(openDb(':memory:'))
+attachDb(openDb(':memory:'))
 
 for (const c of targets) {
   if (!c.voiceId) { console.log(`${c.id}: no voiceId yet, skipping`); continue }
