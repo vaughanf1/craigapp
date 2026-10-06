@@ -30,10 +30,10 @@ const Input = z.object({
 export const Suggestions = z.object({
   reflection: z.string().describe("One or two spoken sentences in the coach's voice showing you understood THIS goal: use their words and numbers (distance to go, weeks left, rate needed). No greeting, no generic encouragement."),
   sharper: z.string().nullable().describe('If the goal is vague or unmeasurable, one short sentence suggesting how to sharpen it (add a number, a date, or the observable evidence). Null if it is already specific.'),
-  benefits: z.array(z.string().max(60)).min(4).max(6).describe("What's in it for THEM, specific to this goal and what they wrote. Short, first person, e.g. 'Walk up the stairs without stopping'."),
-  obstacles: z.array(z.string().max(60)).min(4).max(6).describe('What will realistically get in the way of THIS goal. Specific situations, not character flaws.'),
-  supporters: z.array(z.string().max(60)).min(3).max(5).describe('People or groups who could help with this goal, phrased as options they can pick.'),
-  skills: z.array(z.string().max(60)).min(3).max(5).describe('Skills or knowledge this particular goal will need.'),
+  benefits: z.array(z.string().max(90)).min(4).max(6).describe("What's in it for THEM, specific to this goal and what they wrote. Complete phrases of 4-9 words, first person, e.g. 'Walk up the stairs without stopping'. Never cut a phrase short."),
+  obstacles: z.array(z.string().max(90)).min(4).max(6).describe('What will realistically get in the way of THIS goal. Specific situations in 4-9 words, not character flaws. Complete phrases only.'),
+  supporters: z.array(z.string().max(90)).min(3).max(5).describe('People or groups who could help with this goal, as pickable options of 2-7 words.'),
+  skills: z.array(z.string().max(90)).min(3).max(5).describe('Skills or knowledge this particular goal will need, 3-8 words each.'),
   actionPlanDraft: z.string().max(500).describe('A first draft of the plan of action in 2-4 plain sentences: the milestones by month, the weekly actions, the daily habit. Specific to the goal and date; numbers where they exist.'),
 })
 export type SuggestionsT = z.infer<typeof Suggestions>
