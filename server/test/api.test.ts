@@ -7,7 +7,7 @@ import { createApp } from '../src/app.ts'
 import * as repo from '../src/lib/repo.ts'
 import { dueNow, tick } from '../src/scheduler.ts'
 import { remember } from '../src/coach/memory.ts'
-import { localParts } from '../src/lib/time.ts'
+import { localParts, shiftDate } from '../src/lib/time.ts'
 import { setProviderForTests } from '../src/audio/speak.ts'
 import { INTAKE_FIELDS } from '../src/coach/intake.ts'
 
@@ -248,6 +248,11 @@ describe('the plan & progress', () => {
 })
 
 describe('the war map & board', () => {
+  // The fixture is relative to today so the board's buckets (overdue / this week / up next) and the
+  // current phase stay where the assertions expect them whatever the date the suite runs on
+  const today = localParts('Europe/London').date
+  const day = (n: number) => shiftDate(today, n)
+
   it('builds itself in the background once the plan exists, through the draft → board → revise loop', async () => {
     const { buildWarMap } = await import('../src/coach/warmap.ts')
     const user = repo.findUserByPhone('+447700900123')!
@@ -255,23 +260,23 @@ describe('the war map & board', () => {
       northStar: 'Craig at 11 stone on 1 January, buying a new suit.',
       strategy: 'Three phases, each ending at a stop.',
       phases: [
-        { name: 'Foundations', start: '2026-09-19', end: '2026-10-30', objective: 'Build the logging habit', keyResults: [{ text: 'First stop: 12 stone 2', metric: { label: 'Weight', target: 77, unit: 'kg' } }] },
-        { name: 'The push', start: '2026-10-31', end: '2099-10-30', objective: 'Get to goal', keyResults: [{ text: 'Goal weight', metric: { label: 'Weight', target: 70, unit: 'kg' } }] },
+        { name: 'Foundations', start: day(-2), end: day(41), objective: 'Build the logging habit', keyResults: [{ text: 'First stop: 12 stone 2', metric: { label: 'Weight', target: 77, unit: 'kg' } }] },
+        { name: 'The push', start: day(42), end: '2099-10-30', objective: 'Get to goal', keyResults: [{ text: 'Goal weight', metric: { label: 'Weight', target: 70, unit: 'kg' } }] },
       ],
       tasks: [
-        { phase: 1, title: 'Clear the biscuit tin', detail: 'Out of sight.', due: '2026-09-21', effort: 'S' },
-        { phase: 1, title: 'Tell Terry the goal', detail: 'Accountability.', due: '2026-09-22', effort: 'S' },
-        { phase: 1, title: 'Buy bathroom scales', detail: 'Weekly weigh-ins.', due: '2026-09-23', effort: 'S' },
-        { phase: 1, title: 'Book a walking route', detail: 'Same loop daily.', due: '2026-09-24', effort: 'S' },
+        { phase: 1, title: 'Clear the biscuit tin', detail: 'Out of sight.', due: day(2), effort: 'S' },
+        { phase: 1, title: 'Tell Terry the goal', detail: 'Accountability.', due: day(3), effort: 'S' },
+        { phase: 1, title: 'Buy bathroom scales', detail: 'Weekly weigh-ins.', due: day(4), effort: 'S' },
+        { phase: 1, title: 'Book a walking route', detail: 'Same loop daily.', due: day(5), effort: 'S' },
         { phase: 2, title: 'Try on the old suit', detail: 'Proof.', due: null, effort: 'S' },
-        { phase: 2, title: 'Plan Christmas food', detail: 'Reduce not ban.', due: '2026-12-15', effort: 'M' },
+        { phase: 2, title: 'Plan Christmas food', detail: 'Reduce not ban.', due: day(80), effort: 'M' },
       ],
       risks: [{ risk: 'Office cake', mitigation: 'One slice, Fridays only.' }],
     }
     parseMock
       .mockResolvedValueOnce({ parsed_output: draft })                                                      // draft 1
       .mockResolvedValueOnce({ parsed_output: { score: 6, verdict: 'Too vague after October.', issues: ['Phase 2 has no tasks in the first two weeks'] } }) // review 1
-      .mockResolvedValueOnce({ parsed_output: { ...draft, tasks: [...draft.tasks, { phase: 2, title: 'Book November PT session', detail: 'Momentum.', due: '2026-11-02', effort: 'M' }] } }) // revision
+      .mockResolvedValueOnce({ parsed_output: { ...draft, tasks: [...draft.tasks, { phase: 2, title: 'Book November PT session', detail: 'Momentum.', due: day(44), effort: 'M' }] } }) // revision
       .mockResolvedValueOnce({ parsed_output: { score: 9, verdict: 'Ready.', issues: [] } })                // review 2
     const { map, tasks } = await buildWarMap(user)
     expect(map.source).toBe('coach')
@@ -291,7 +296,7 @@ describe('the war map & board', () => {
     const ctx = createMock.mock.calls.at(-1)![0].system[1].text
     expect(ctx).toContain('THE WAR MAP')
     expect(ctx).toContain('Current phase: Foundations')
-    expect(ctx).toMatch(/This week:\n- \[\S+\] Clear the biscuit tin \(due 2026-09-21\)/)
+    expect(ctx).toMatch(new RegExp(`This week:\\n- \\[\\S+\\] Clear the biscuit tin \\(due ${day(2)}\\)`))
   })
 
   it('what they say on a call ticks tasks and adds new ones', async () => {
@@ -299,16 +304,16 @@ describe('the war map & board', () => {
     const tin = before.tasks.find((t: any) => t.title === 'Clear the biscuit tin')
     createMock.mockResolvedValueOnce({ stop_reason: 'end_turn', content: [{ type: 'text', text: 'Great.' }] })
     await api('/coach/message', { method: 'POST', body: JSON.stringify({ text: 'Biscuit tin is gone, and I will book the dentist on Friday', channel: 'call' }) }, token)
-    parseMock.mockResolvedValueOnce({ parsed_output: { add: [], archive: [], day: null, actionsDone: [], actionsMissed: [], weighIn: null, tasksDone: [tin.id], newTasks: [{ title: 'Book the dentist', detail: 'He said Friday.', due: '2026-09-25' }] } })
+    parseMock.mockResolvedValueOnce({ parsed_output: { add: [], archive: [], day: null, actionsDone: [], actionsMissed: [], weighIn: null, tasksDone: [tin.id], newTasks: [{ title: 'Book the dentist', detail: 'He said Friday.', due: day(6) }] } })
     await remember(repo.findUserByPhone('+447700900123')!.id)
     const after = await (await api('/coach/warmap', {}, token)).json() as any
     expect(after.tasks.find((t: any) => t.id === tin.id).status).toBe('done')
     const dentist = after.tasks.find((t: any) => t.title === 'Book the dentist')
-    expect(dentist).toMatchObject({ source: 'coach', due: '2026-09-25', phaseId: 'p1' })
+    expect(dentist).toMatchObject({ source: 'coach', due: day(6), phaseId: 'p1' })
   })
 
   it('the person can add, tick and remove tasks', async () => {
-    const created = await (await api('/coach/tasks', { method: 'POST', body: JSON.stringify({ title: 'Buy running shoes', due: '2026-09-27' }) }, token)).json() as any
+    const created = await (await api('/coach/tasks', { method: 'POST', body: JSON.stringify({ title: 'Buy running shoes', due: day(8) }) }, token)).json() as any
     expect(created.source).toBe('user')
     const done = await (await api(`/coach/tasks/${created.id}`, { method: 'PUT', body: JSON.stringify({ status: 'done' }) }, token)).json() as any
     expect(done.doneAt).toBeTruthy()
