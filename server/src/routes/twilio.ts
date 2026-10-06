@@ -3,7 +3,8 @@ import * as repo from '../lib/repo.ts'
 import { env } from '../lib/env.ts'
 import { twiml, validSignature } from '../lib/twilio.ts'
 import { reply } from '../coach/chat.ts'
-import { getCoach } from '../../shared/coaches.ts'
+import { getCoach, type Coach } from '../../shared/coaches.ts'
+import { audioByKey, speak } from '../audio/speak.ts'
 
 /**
  * Real phone calls. Twilio dials the user; when they answer it POSTs here for
@@ -11,6 +12,23 @@ import { getCoach } from '../../shared/coaches.ts'
  * and loop — a conversation with your coach on an actual phone call.
  */
 const app = new Hono()
+
+/**
+ * The coach's real voice on the phone: generate (or fetch from cache) the line through the same
+ * audio layer the app uses, and hand Twilio a URL to <Play>. Falls back to Polly <Say> when the
+ * provider is off, a cap is hit, or anything fails — the call always goes ahead.
+ */
+async function spoken(userId: string, coach: Coach, text: string): Promise<{ voice: string; say: string; playUrl?: string }> {
+  const r = await speak({ userId, coachId: coach.id, text })
+  return { voice: coach.phoneVoice, say: text, playUrl: r.ok ? `${env.publicUrl}/twilio/audio/${r.key}.mp3` : undefined }
+}
+
+/** Twilio fetches the audio here. Keys are sha256 cache keys: unguessable, and the bytes are only ever coach speech. */
+app.get('/audio/:key', (c) => {
+  const hit = audioByKey(c.req.param('key').replace(/\.mp3$/, ''))
+  if (!hit) return c.text('not found', 404)
+  return c.body(hit.audio.buffer.slice(hit.audio.byteOffset, hit.audio.byteOffset + hit.audio.byteLength) as ArrayBuffer, 200, { 'Content-Type': hit.mime, 'Cache-Control': 'public, max-age=86400' })
+})
 
 async function formParams(c: { req: { parseBody: () => Promise<Record<string, unknown>> } }): Promise<Record<string, string>> {
   const raw = await c.req.parseBody()
@@ -32,7 +50,7 @@ app.post('/voice/:id', async (c) => {
   // Voicemail picked up: leave the brief and hang up
   if (params.AnsweredBy && params.AnsweredBy.startsWith('machine')) {
     repo.setDeliveryStatus(d.id, 'missed')
-    return c.body(twiml({ voice: coach.phoneVoice, say: `${d.brief} Open the app when you get a minute. Speak soon.` }), 200, XML)
+    return c.body(twiml(await spoken(user.id, coach, `${d.brief} Open the app when you get a minute. Speak soon.`)), 200, XML)
   }
 
   if (d.status !== 'answered') {
@@ -40,8 +58,7 @@ app.post('/voice/:id', async (c) => {
     repo.addMessage(user.id, 'coach', d.brief, 'call')
   }
   return c.body(twiml({
-    voice: coach.phoneVoice,
-    say: d.brief,
+    ...(await spoken(user.id, coach, d.brief)),
     gatherAction: `${env.publicUrl}/twilio/gather/${d.id}?t=1`,
     reprompt: "No worries if now's not a good time. I'll pop it in the app. Speak soon.",
   }), 200, XML)
@@ -60,7 +77,7 @@ app.post('/gather/:id', async (c) => {
   const heard = (params.SpeechResult ?? '').trim()
 
   if (!heard) {
-    return c.body(twiml({ voice: coach.phoneVoice, say: "I didn't catch that, so I'll let you go. It's all in the app. Speak soon." }), 200, XML)
+    return c.body(twiml(await spoken(user.id, coach, "I didn't catch that, so I'll let you go. It's all in the app. Speak soon.")), 200, XML)
   }
 
   // Past the soft limit the coach is told to wrap up; Twilio's TimeLimit is the hard stop
@@ -75,8 +92,7 @@ app.post('/gather/:id', async (c) => {
   }
   const finished = turn >= env.call.maxTurns || /\bgoodbye\b/i.test(answer) || /\b(bye|goodbye|got to go|gotta go|speak later)\b/i.test(heard)
   return c.body(twiml({
-    voice: coach.phoneVoice,
-    say: answer,
+    ...(await spoken(user.id, coach, answer)),
     gatherAction: finished ? undefined : `${env.publicUrl}/twilio/gather/${d.id}?t=${turn + 1}`,
     reprompt: 'Okay, I\'ll let you get on. Speak soon.',
   }), 200, XML)

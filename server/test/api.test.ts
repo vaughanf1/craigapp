@@ -418,6 +418,19 @@ describe('deliveries — the call', () => {
     parseMock.mockResolvedValueOnce({ parsed_output: brief })
     const d = await (await api('/coach/call-now', { method: 'POST', body: JSON.stringify({ channels: ['call'] }) }, token)).json() as any
 
+    // With a voice provider the phone plays the coach's real voice; without one it falls back to Polly <Say>
+    setProviderForTests({ id: 'fake', model: 'fake-1', synthesize: async () => ({ audio: new Uint8Array([9, 9, 9]), mime: 'audio/mpeg' }) })
+    const withVoice = await app.request(`/twilio/voice/${d.id}`, { method: 'POST', body: new URLSearchParams({ CallSid: 'CA1', AnsweredBy: 'human' }) })
+    const withVoiceXml = await withVoice.text()
+    // The brief is <Play>ed in the coach's voice; only the no-answer reprompt after <Gather> stays on <Say>
+    expect(withVoiceXml).toMatch(/<Response><Play>http[^<]+\/twilio\/audio\/[a-f0-9]{64}\.mp3<\/Play><Gather/)
+    const audioUrl = withVoiceXml.match(/<Play>([^<]+)<\/Play>/)![1].replace(/^https?:\/\/[^/]+/, '')
+    const audio = await app.request(audioUrl)
+    expect(audio.status).toBe(200)
+    expect(audio.headers.get('content-type')).toBe('audio/mpeg')
+    expect(new Uint8Array(await audio.arrayBuffer())).toEqual(new Uint8Array([9, 9, 9]))
+    setProviderForTests(null)
+    repo.setDeliveryStatus(d.id, 'sent')
     const voice = await app.request(`/twilio/voice/${d.id}`, { method: 'POST', body: new URLSearchParams({ CallSid: 'CA1', AnsweredBy: 'human' }) })
     const xml = await voice.text()
     expect(voice.headers.get('content-type')).toContain('text/xml')

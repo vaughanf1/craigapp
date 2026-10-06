@@ -75,8 +75,11 @@ export function escapeXml(s: string): string {
 }
 
 export interface TwimlTurn {
+  /** Polly voice used for <Say> — the fallback when there is no audio URL */
   voice: string
   say: string
+  /** URL of the coach's real voice saying `say` (served from the TTS cache). When set, <Play> replaces <Say>. */
+  playUrl?: string
   /** Where to POST the caller's speech; omit to hang up after speaking */
   gatherAction?: string
   /** Spoken if the caller says nothing */
@@ -84,7 +87,9 @@ export interface TwimlTurn {
 }
 
 export function twiml(turn: TwimlTurn): string {
-  const say = `<Say voice="${escapeXml(turn.voice)}" language="en-GB">${escapeXml(turn.say)}</Say>`
+  const say = turn.playUrl
+    ? `<Play>${escapeXml(turn.playUrl)}</Play>`
+    : `<Say voice="${escapeXml(turn.voice)}" language="en-GB">${escapeXml(turn.say)}</Say>`
   if (!turn.gatherAction) return `<?xml version="1.0" encoding="UTF-8"?><Response>${say}<Hangup/></Response>`
   const reprompt = turn.reprompt ?? "I didn't catch that. Speak to you soon."
   return `<?xml version="1.0" encoding="UTF-8"?><Response>${say}<Gather input="speech" action="${escapeXml(turn.gatherAction)}" method="POST" language="en-GB" speechTimeout="auto" speechModel="phone_call" actionOnEmptyResult="true"></Gather><Say voice="${escapeXml(turn.voice)}" language="en-GB">${escapeXml(reprompt)}</Say><Hangup/></Response>`

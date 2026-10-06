@@ -15,7 +15,7 @@ import type { AudioFormat, TtsProvider } from './provider.ts'
 export type FallbackReason = 'no-provider' | 'no-voice' | 'user-cap' | 'global-cap' | 'budget' | 'provider-error' | 'empty'
 
 export type SpeakResult =
-  | { ok: true; audio: Uint8Array; mime: string; cached: boolean; chars: number; costMicro: number }
+  | { ok: true; audio: Uint8Array; mime: string; cached: boolean; chars: number; costMicro: number; /** tts_cache key — serve the same bytes later via audioByKey() */ key: string }
   | { ok: false; reason: FallbackReason }
 
 export interface SpeakRequest {
@@ -88,7 +88,7 @@ export async function speak(req: SpeakRequest): Promise<SpeakResult> {
   if (hit) {
     db.prepare('UPDATE tts_cache SET hits = hits + 1 WHERE key = ?').run(key)
     log({ userId: req.userId, coachId: coach.id, provider: p.id, voiceId: coach.voiceId, chars: 0, cached: true, costMicro: 0, ms: Date.now() - started })
-    return { ok: true, audio: new Uint8Array(hit.audio), mime: hit.mime, cached: true, chars: hit.chars, costMicro: 0 }
+    return { ok: true, audio: new Uint8Array(hit.audio), mime: hit.mime, cached: true, chars: hit.chars, costMicro: 0, key }
   }
 
   // 2. Caps — checked before we spend, in characters because that is how providers bill
@@ -112,7 +112,13 @@ export async function speak(req: SpeakRequest): Promise<SpeakResult> {
   db.prepare('INSERT OR REPLACE INTO tts_cache (key, coach_id, voice_id, mime, audio, chars, created_at, hits) VALUES (?,?,?,?,?,?,?,0)')
     .run(key, coach.id, coach.voiceId, result.mime, result.audio, text.length, now)
   log({ userId: req.userId, coachId: coach.id, provider: p.id, voiceId: coach.voiceId, chars: text.length, cached: false, costMicro, ms: Date.now() - started })
-  return { ok: true, audio: result.audio, mime: result.mime, cached: false, chars: text.length, costMicro }
+  return { ok: true, audio: result.audio, mime: result.mime, cached: false, chars: text.length, costMicro, key }
+}
+
+/** Cached audio by key — how the phone pipeline hands Twilio a URL to <Play> */
+export function audioByKey(key: string): { audio: Uint8Array; mime: string } | null {
+  const hit = getDb().prepare('SELECT audio, mime FROM tts_cache WHERE key = ?').get(key) as { audio: Uint8Array; mime: string } | undefined
+  return hit ? { audio: new Uint8Array(hit.audio), mime: hit.mime } : null
 }
 
 /** The real per-user economics: what this user and the whole service have spent */

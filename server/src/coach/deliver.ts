@@ -4,6 +4,7 @@ import { env } from '../lib/env.ts'
 import { sendPush } from '../lib/push.ts'
 import { placeCall } from '../lib/twilio.ts'
 import { generateBrief } from './brief.ts'
+import { speak } from '../audio/speak.ts'
 import type { Delivery, DeliveryKind } from '../lib/types.ts'
 
 /**
@@ -36,6 +37,8 @@ export async function deliver(
   }
   if (channels.includes('call')) {
     try {
+      // Warm the cache: the brief in the coach's real voice is ready before the phone rings
+      await speak({ userId: user.id, coachId: coach.id, text: brief.spoken }).catch(() => null)
       const call = await placeCall(
         user.phone,
         `${env.publicUrl}/twilio/voice/${delivery.id}`,
