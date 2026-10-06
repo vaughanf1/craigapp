@@ -1,4 +1,5 @@
 /// <reference lib="webworker" />
+import { clientsClaim } from 'workbox-core'
 import { precacheAndRoute, cleanupOutdatedCaches } from 'workbox-precaching'
 import { registerRoute, NavigationRoute } from 'workbox-routing'
 import { NetworkFirst } from 'workbox-strategies'
@@ -8,10 +9,18 @@ declare const self: ServiceWorkerGlobalScope
 /**
  * Service worker: offline app shell + push notifications. A push from the
  * server is your coach ringing — tapping it opens the call screen.
+ *
+ * Updates must land immediately: a new deploy activates on the next page load
+ * (skipWaiting + clientsClaim; the registration script reloads on controllerchange),
+ * and page navigations always try the network first — including "/" — so nobody
+ * sees a stale app shell from the precache.
  */
+self.skipWaiting()
+clientsClaim()
 cleanupOutdatedCaches()
+// Navigation route first so it wins over the precache's index.html for "/"
+registerRoute(new NavigationRoute(new NetworkFirst({ cacheName: 'pages', networkTimeoutSeconds: 4 })))
 precacheAndRoute(self.__WB_MANIFEST)
-registerRoute(new NavigationRoute(new NetworkFirst({ cacheName: 'pages' })))
 
 interface CallPush {
   title: string

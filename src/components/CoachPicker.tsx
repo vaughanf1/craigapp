@@ -54,7 +54,7 @@ export default function CoachPicker({
         ))}
       </div>
 
-      <div className={`mt-5 grid gap-3 ${compact ? 'grid-cols-4' : 'grid-cols-2 sm:grid-cols-4'}`}>
+      <div className={`mt-5 grid gap-2.5 sm:gap-3 ${compact ? 'grid-cols-4 sm:grid-cols-6' : 'grid-cols-3 sm:grid-cols-4 md:grid-cols-6'}`}>
         {matches.map((c) => {
           const selected = value === c.id
           return (
@@ -67,14 +67,14 @@ export default function CoachPicker({
                 // The intro plays full screen with sound, started inside this tap
                 openIntro(c, { onChoose: () => onChange(c.id) })
               }}
-              className={`flex flex-col items-center rounded-3xl bg-white p-3 text-center transition-all ${
+              className={`flex flex-col items-center rounded-3xl bg-white p-2.5 text-center transition-all sm:p-3 ${
                 selected ? 'shadow-float ring-2 ring-accent' : 'shadow-card hairline hover:shadow-float'
               }`}
             >
               <CoachFace coach={c} size={compact ? 'md' : 'lg'} playing={selected || previewing === c.id} tappable={false} />
-              <p className="mt-2 text-sm font-semibold">{c.name}</p>
+              <p className="mt-2 text-sm font-semibold leading-tight">{c.name}</p>
               {!compact && (
-                <p className="text-xs text-ink-secondary">
+                <p className="mt-0.5 text-[11px] leading-snug text-ink-secondary">
                   {c.ageBand} · {c.style}
                 </p>
               )}
