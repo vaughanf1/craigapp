@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react'
 import type { ActionLog, AppState, CheckInRecord, ChatMessage, FoodEntry, Roadmap, Task, UserProfile, WarMap, WeighIn } from './types'
 import { api, mirror, type MeResponse } from './api'
+import { clearDraft } from './onboardingDraft'
 
 const STORAGE_KEY = 'bemore-state-v1'
 
@@ -144,6 +145,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     },
     reset: () => {
       api.signOut()
+      clearDraft()
       setState(EMPTY)
     },
   }

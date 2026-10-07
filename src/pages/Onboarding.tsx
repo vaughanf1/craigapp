@@ -8,6 +8,7 @@ import { speak } from '../lib/voice'
 import { suggestedCalorieTarget } from '../lib/health'
 import { api, type OnboardingSuggestions } from '../lib/api'
 import { formatWeight, halfwayKg } from '../lib/units'
+import { clearDraft, loadDraft, saveDraft, type OnboardingDraft } from '../lib/onboardingDraft'
 import CoachPicker from '../components/CoachPicker'
 import DealExplainer from '../components/DealExplainer'
 import type { GoalAreaId, VoiceAccent } from '../lib/types'
@@ -37,34 +38,48 @@ export default function Onboarding() {
   const navigate = useNavigate()
   const { setProfile, state } = useStore()
 
-  const [step, setStep] = useState(0)
-  const [name, setName] = useState('')
-  const [dob, setDob] = useState('')
-  const [areaIds, setAreaIds] = useState<GoalAreaId[]>([])
+  // Every answer starts from the saved draft, so a back-swipe, reload or stale-shell
+  // refresh mid-onboarding lands you exactly where you were with everything still filled in.
+  const [draft] = useState<OnboardingDraft>(loadDraft)
+
+  const [step, setStep] = useState(draft.step)
+  const [name, setName] = useState(draft.name)
+  const [dob, setDob] = useState(draft.dob)
+  const [areaIds, setAreaIds] = useState<GoalAreaId[]>(draft.areaIds)
   const areaId = areaIds[0] ?? null
   const toggleArea = (id: GoalAreaId) =>
     setAreaIds((ids) => (ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]))
-  const [statement, setStatement] = useState('')
-  const [targetDate, setTargetDate] = useState('')
-  const [benefits, setBenefits] = useState<string[]>([])
-  const [obstacles, setObstacles] = useState<string[]>([])
-  const [supporters, setSupporters] = useState<string[]>([])
-  const [skills, setSkills] = useState<string[]>([])
-  const [actionPlan, setActionPlan] = useState('')
-  const [coachId, setCoachId] = useState<string | null>(null)
-  const [accent, setAccent] = useState<VoiceAccent>('british')
-  const [checkInsPerDay, setCheckInsPerDay] = useState<1 | 2 | 3 | 4 | 5>(3)
+  const [statement, setStatement] = useState(draft.statement)
+  const [targetDate, setTargetDate] = useState(draft.targetDate)
+  const [benefits, setBenefits] = useState<string[]>(draft.benefits)
+  const [obstacles, setObstacles] = useState<string[]>(draft.obstacles)
+  const [supporters, setSupporters] = useState<string[]>(draft.supporters)
+  const [skills, setSkills] = useState<string[]>(draft.skills)
+  const [actionPlan, setActionPlan] = useState(draft.actionPlan)
+  const [coachId, setCoachId] = useState<string | null>(draft.coachId)
+  const [accent, setAccent] = useState<VoiceAccent>(draft.accent)
+  const [checkInsPerDay, setCheckInsPerDay] = useState<1 | 2 | 3 | 4 | 5>(draft.checkInsPerDay)
 
   /** The coach's reading of the goal: specific suggestions for the plan step (static chips when offline) */
-  const [suggest, setSuggest] = useState<OnboardingSuggestions | null>(null)
+  const [suggest, setSuggest] = useState<OnboardingSuggestions | null>(draft.suggest)
   const [suggesting, setSuggesting] = useState(false)
-  const suggestedFor = useRef('')
+  const suggestedFor = useRef(draft.suggestedFor)
 
-  const [sex, setSex] = useState<'male' | 'female' | undefined>(undefined)
-  const [heightCm, setHeightCm] = useState('')
-  const [weightKg, setWeightKg] = useState('')
-  const [goalWeightKg, setGoalWeightKg] = useState('')
-  const [weightUnit, setWeightUnit] = useState<'stone' | 'lbs' | 'kg'>('stone')
+  const [sex, setSex] = useState<'male' | 'female' | undefined>(draft.sex)
+  const [heightCm, setHeightCm] = useState(draft.heightCm)
+  const [weightKg, setWeightKg] = useState(draft.weightKg)
+  const [goalWeightKg, setGoalWeightKg] = useState(draft.goalWeightKg)
+  const [weightUnit, setWeightUnit] = useState<'stone' | 'lbs' | 'kg'>(draft.weightUnit)
+
+  // Save the whole draft on every change (cheap: a few hundred bytes to localStorage)
+  useEffect(() => {
+    saveDraft({
+      step, name, dob, areaIds, statement, targetDate, benefits, obstacles, supporters, skills,
+      actionPlan, coachId, accent, checkInsPerDay, sex, heightCm, weightKg, goalWeightKg, weightUnit,
+      suggest, suggestedFor: suggestedFor.current, savedAt: Date.now(),
+    })
+  }, [step, name, dob, areaIds, statement, targetDate, benefits, obstacles, supporters, skills,
+    actionPlan, coachId, accent, checkInsPerDay, sex, heightCm, weightKg, goalWeightKg, weightUnit, suggest])
 
   const area = useMemo(() => GOAL_AREAS.find((a) => a.id === areaId), [areaId])
   const coach = coachId ? getCoach(coachId) : null
@@ -168,6 +183,7 @@ export default function Onboarding() {
           }
         : {}),
     })
+    clearDraft()
     // With a server, the coach needs your number to ring you; then it builds your plan
     navigate(api.connected && !state.session ? '/signin?next=/app/plan' : '/app/plan')
   }
