@@ -50,6 +50,8 @@ export const env = {
    */
   tts: {
     elevenLabsKey: e.ELEVENLABS_API_KEY ?? '',
+    /** ElevenLabs Agents agent used for live two-way in-app calls (overrides enabled for prompt, first message, voice) */
+    agentId: e.ELEVENLABS_AGENT_ID ?? '',
     model: e.ELEVENLABS_MODEL ?? 'eleven_flash_v2_5',
     /** USD per 1M characters, for the cost log. ElevenLabs Flash API list price is 40. */
     costPer1MUsd: Number(e.TTS_COST_PER_1M_USD ?? 40),

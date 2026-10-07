@@ -78,6 +78,15 @@ export interface Schedule {
   channels: ('push' | 'call')[]
   enabled: boolean
 }
+export interface LiveCallSession {
+  token: string
+  agentId: string
+  overrides: {
+    agent: { prompt: { prompt: string }; firstMessage: string; language: 'en' }
+    tts: { voiceId: string }
+  }
+}
+
 export interface Delivery {
   id: string
   date: string
@@ -202,6 +211,9 @@ export const api = {
     voiceStats: () => request<{ provider: string; user: { month: { requests: number; cached: number; chars: number; costUsd: number; fallbacks: number }; todayChars: number; dailyCapChars: number }; global: { month: { chars: number; costUsd: number; budgetUsd: number } } }>('/coach/speak/stats'),
     callLimits: () => request<{ maxSeconds: number; wrapUpSeconds: number; maxTurns: number }>('/coach/call-limits'),
     callNow: (channels: ('push' | 'call')[]) => post<Delivery>('/coach/call-now', { channels }),
+    /** Live two-way voice call: short-lived ElevenLabs token + per-call persona/context overrides. 503 when not configured. */
+    liveCall: (deliveryId?: string) => post<LiveCallSession>('/coach/live-call', { deliveryId }),
+    liveTurn: (role: 'user' | 'coach', text: string) => post<{ ok: true }>('/coach/live-call/turn', { role, text }),
     deliveries: () => request<Delivery[]>('/coach/deliveries'),
     delivery: (id: string) => request<Delivery>(`/coach/deliveries/${id}`),
     answer: (id: string) => post<{ ok: true; brief: string }>(`/coach/deliveries/${id}/answer`),

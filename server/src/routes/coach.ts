@@ -12,6 +12,8 @@ import { localParts } from '../lib/time.ts'
 import { env } from '../lib/env.ts'
 import { requireUser, requireProfile, type Env } from './middleware.ts'
 import { speak, voiceStats } from '../audio/speak.ts'
+import { liveCallSession, liveCallsEnabled } from '../audio/live.ts'
+import { rememberLater } from '../coach/memory.ts'
 
 const app = new Hono<Env>()
 app.use('*', requireUser)
@@ -36,6 +38,37 @@ app.post('/call-now', async (c) => {
 })
 
 app.get('/deliveries', (c) => c.json(repo.listDeliveries(c.get('user').id)))
+
+/**
+ * Start a live two-way voice call in the app. Returns a short-lived ElevenLabs
+ * conversation token plus the per-call persona/context/opening-line overrides.
+ * 503 when live calls aren't configured — the client falls back to speak-and-listen.
+ */
+app.post('/live-call', async (c) => {
+  const user = requireProfile(c)
+  if (!liveCallsEnabled()) return c.json({ error: 'Live calls are not configured' }, 503)
+  const body = z.object({ deliveryId: z.string().optional() }).safeParse(await c.req.json().catch(() => ({})))
+  if (!body.success) return c.json({ error: 'Invalid request' }, 400)
+  const d = body.data.deliveryId ? repo.getDelivery(body.data.deliveryId) : null
+  if (d && d.userId !== user.id) return c.json({ error: 'Not found' }, 404)
+  if (d && d.status !== 'answered') repo.setDeliveryStatus(d.id, 'answered')
+  try {
+    return c.json(await liveCallSession(user, d))
+  } catch (err) {
+    console.error('[live-call]', err)
+    return c.json({ error: 'Live call unavailable' }, 503)
+  }
+})
+
+/** Each turn of a live call, as the browser hears it, so the call lands in memory like any other conversation */
+app.post('/live-call/turn', async (c) => {
+  const user = requireProfile(c)
+  const body = z.object({ role: z.enum(['user', 'coach']), text: z.string().min(1).max(4000) }).safeParse(await c.req.json().catch(() => ({})))
+  if (!body.success) return c.json({ error: 'Invalid request' }, 400)
+  repo.addMessage(user.id, body.data.role, body.data.text, 'call')
+  if (body.data.role === 'user') rememberLater(user.id)
+  return c.json({ ok: true })
+})
 
 /**
  * The coach's voice for one line. 200 + audio when the provider served it (from

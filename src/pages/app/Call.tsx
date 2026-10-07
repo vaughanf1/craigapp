@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
+import { ConversationProvider, useConversation } from '@elevenlabs/react'
 import { uid, useStore, currentStreak } from '../../lib/store'
 import { getCoach } from '../../data/coaches'
 import { api } from '../../lib/api'
@@ -14,10 +15,26 @@ type Turn = { id: string; from: 'coach' | 'user'; text: string }
 
 /**
  * The call. Your coach rings you — from a push notification, the schedule,
- * or "Call me now" — speaks a brief built from your last day, then listens.
- * Everything said here goes into memory.
+ * or "Call me now" — and you talk.
+ *
+ * Two engines:
+ *  - LIVE (default when the server has an ElevenLabs agent): a real two-way
+ *    voice conversation over WebRTC in the coach's own voice. Always listening,
+ *    interrupt whenever you like, no buttons to press. The server supplies the
+ *    persona, today's context and the opening brief per call.
+ *  - FALLBACK (offline, no agent, mic refused): speak the brief, listen once,
+ *    answer through the coach brain, repeat.
+ * Everything said either way goes into memory.
  */
 export default function Call() {
+  return (
+    <ConversationProvider>
+      <CallScreen />
+    </ConversationProvider>
+  )
+}
+
+function CallScreen() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { state, online, addChat } = useStore()
@@ -35,13 +52,56 @@ export default function Call() {
   const [muted, setMuted] = useState(false)
   const [elapsed, setElapsed] = useState(0)
   const [limits, setLimits] = useState({ maxSeconds: 240, wrapUpSeconds: 150, maxTurns: 6 })
+  /** true once the live engine is carrying the call; false means the fallback loop is */
+  const [isLive, setIsLive] = useState(false)
   const userTurns = useRef(0)
   const startedAt = useRef<number | null>(null)
   const mutedRef = useRef(false)
   const stopListenRef = useRef<() => void>(() => {})
   const loadedRef = useRef(false)
+  const briefRef = useRef<string | null>(null)
+  const liveStarting = useRef<{ resolve: (ok: boolean) => void } | null>(null)
+  const endedRef = useRef(false)
   const transcriptRef = useRef<HTMLDivElement>(null)
   const canListen = Boolean(getSpeechRecognition())
+
+  /* ---------- live engine ---------- */
+  const live = useConversation({
+    onConnect: () => {
+      liveStarting.current?.resolve(true)
+      liveStarting.current = null
+    },
+    onError: (message) => {
+      // Before we're connected an error means "use the fallback"; mid-call we show it and carry on
+      if (liveStarting.current) {
+        liveStarting.current.resolve(false)
+        liveStarting.current = null
+      } else setError(message)
+    },
+    onDisconnect: () => {
+      if (liveStarting.current) {
+        liveStarting.current.resolve(false)
+        liveStarting.current = null
+        return
+      }
+      // The agent hung up (natural goodbye or the time cap) — close the call screen gracefully
+      if (!endedRef.current) finish()
+    },
+    onModeChange: ({ mode }) => {
+      setSpeaking(mode === 'speaking')
+      setListening(mode === 'listening')
+    },
+    onMessage: ({ message, source }) => {
+      const text = (message ?? '').trim()
+      if (!text) return
+      const from: Turn['from'] = source === 'user' ? 'user' : 'coach'
+      setTurns((t) => [...t, { id: uid(), from, text }])
+      addChat({ id: uid(), from, text, timestamp: Date.now() })
+      // The opening brief is already stored by the delivery; everything after it is new
+      if (from === 'coach' && briefRef.current && text === briefRef.current.trim()) return
+      if (online) api.coach.liveTurn(from, text).catch(() => {})
+    },
+  })
 
   /* Fetch the brief while it rings; if the server can't produce one, build it locally so the call still happens */
   useEffect(() => {
@@ -65,6 +125,9 @@ export default function Call() {
     load()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id])
+  useEffect(() => {
+    briefRef.current = brief
+  }, [brief])
 
   /* Ringtone: a soft two-tone from the Web Audio API — no asset needed */
   useEffect(() => {
@@ -106,27 +169,30 @@ export default function Call() {
     if (online) api.coach.callLimits().then(setLimits).catch(() => {})
   }, [online])
 
-  /* Call clock: same caps as the phone call — hard stop at maxSeconds */
+  /* Call clock. The fallback loop enforces maxSeconds here; the live agent has its own cap server-side */
   useEffect(() => {
     if (stage !== 'live') return
     startedAt.current = Date.now()
     const iv = setInterval(() => {
       const secs = Math.floor((Date.now() - (startedAt.current ?? Date.now())) / 1000)
       setElapsed(secs)
-      if (secs >= limits.maxSeconds) endCall()
+      if (!isLive && secs >= limits.maxSeconds) endCall()
     }, 1000)
     return () => clearInterval(iv)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stage, limits.maxSeconds])
+  }, [stage, limits.maxSeconds, isLive])
 
   useEffect(
     () => () => {
       stopSpeaking()
       stopListenRef.current()
+      try { live.endSession() } catch { /* not started */ }
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
   )
 
+  /* ---------- fallback engine ---------- */
   const say = useCallback(
     async (text: string) => {
       setTurns((t) => [...t, { id: uid(), from: 'coach', text }])
@@ -169,10 +235,54 @@ export default function Call() {
     listen()
   }
 
+  /* ---------- answering ---------- */
+  /** Try the live engine: mic permission → server token + overrides → WebRTC session. False means use the fallback. */
+  const startLive = async (): Promise<boolean> => {
+    if (!online) return false
+    try {
+      await navigator.mediaDevices.getUserMedia({ audio: true })
+    } catch {
+      return false
+    }
+    let session
+    try {
+      session = await api.coach.liveCall(id)
+    } catch {
+      return false // 503: not configured, or ElevenLabs down
+    }
+    return new Promise<boolean>((resolve) => {
+      liveStarting.current = { resolve }
+      const timer = setTimeout(() => {
+        if (liveStarting.current) {
+          liveStarting.current = null
+          resolve(false)
+        }
+      }, 12_000)
+      const done = (ok: boolean) => {
+        clearTimeout(timer)
+        resolve(ok)
+      }
+      liveStarting.current = { resolve: done }
+      try {
+        live.startSession({ conversationToken: session.token, connectionType: 'webrtc', overrides: session.overrides })
+      } catch {
+        liveStarting.current = null
+        done(false)
+      }
+    })
+  }
+
   const accept = async () => {
     setStage('connecting')
     if (online && id) api.coach.answer(id).catch(() => {})
-    await new Promise((r) => setTimeout(r, 900))
+    const ok = await startLive()
+    if (ok) {
+      setIsLive(true)
+      setStage('live')
+      return
+    }
+    // Fallback: the coach speaks the brief, then listens once per turn
+    await new Promise((r) => setTimeout(r, 300))
     setStage('live')
     const text = brief ?? `${greeting(profile.name)} It's ${coach.name}. How's today going?`
     await say(text)
@@ -185,17 +295,45 @@ export default function Call() {
     setTimeout(() => navigate('/app'), 1200)
   }
 
-  const endCall = () => {
+  /** The call is over, whoever ended it */
+  const finish = () => {
+    if (endedRef.current) return
+    endedRef.current = true
     stopSpeaking()
     stopListenRef.current()
+    setSpeaking(false)
+    setListening(false)
     setStage('ended')
     if (online) api.coach.refreshMemory().catch(() => {})
+  }
+
+  const endCall = () => {
+    if (isLive) {
+      try { live.endSession() } catch { /* already closed */ }
+    }
+    finish()
+  }
+
+  const toggleMute = () => {
+    const next = !mutedRef.current
+    mutedRef.current = next
+    setMuted(next)
+    if (isLive) live.setMuted(next)
+    else if (next) stopSpeaking()
   }
 
   const sendDraft = () => {
     const t = draft.trim()
     if (!t || thinking) return
     setDraft('')
+    if (isLive) {
+      // Typed into a live call: show it, store it, hand it to the agent
+      setTurns((x) => [...x, { id: uid(), from: 'user', text: t }])
+      addChat({ id: uid(), from: 'user', text: t, timestamp: Date.now() })
+      if (online) api.coach.liveTurn('user', t).catch(() => {})
+      live.sendUserMessage(t)
+      return
+    }
     stopListenRef.current()
     stopSpeaking() // typing over the coach is allowed — it's a conversation
     setSpeaking(false)
@@ -203,6 +341,9 @@ export default function Call() {
   }
 
   const isDark = stage !== 'ended'
+  const statusLine = isLive
+    ? speaking ? 'Speaking — jump in any time' : 'Listening…'
+    : speaking ? 'Speaking…' : listening ? 'Listening…' : thinking ? 'Thinking…' : elapsed >= limits.wrapUpSeconds ? 'Wrapping up' : 'On the call'
 
   return (
     <div className={`fixed inset-0 z-[60] flex flex-col ${isDark ? 'bg-[#0b0b0f] text-white' : 'bg-fog text-ink'}`}>
@@ -232,6 +373,9 @@ export default function Call() {
               <p className="mt-1 text-lg text-white/70">
                 {stage === 'connecting' ? 'Connecting…' : stage === 'missed' ? 'Call declined' : 'Incoming call'}
               </p>
+              {stage === 'connecting' && online && (
+                <p className="mt-2 text-sm text-white/50">Allow the microphone so you can talk back.</p>
+              )}
               {error && <p className="mt-4 max-w-xs text-sm text-white/60">{error}</p>}
             </div>
 
@@ -252,20 +396,36 @@ export default function Call() {
                 <p className="text-sm text-white/70">
                   <span className="tabular-nums">{Math.floor(elapsed / 60)}:{String(elapsed % 60).padStart(2, '0')}</span>
                   {' · '}
-                  {speaking ? 'Speaking…' : listening ? 'Listening…' : thinking ? 'Thinking…' : elapsed >= limits.wrapUpSeconds ? 'Wrapping up' : 'On the call'}
+                  {statusLine}
                 </p>
               </div>
               <button
-                onClick={() => {
-                  mutedRef.current = !mutedRef.current
-                  setMuted(mutedRef.current)
-                  if (mutedRef.current) stopSpeaking()
-                }}
+                onClick={toggleMute}
+                aria-pressed={muted}
                 className={`rounded-full px-3 py-1.5 text-xs font-medium backdrop-blur ${muted ? 'bg-white/20' : 'bg-white/10'}`}
               >
-                {muted ? 'Sound off' : 'Sound on'}
+                {isLive ? (muted ? 'Mic off' : 'Mic on') : muted ? 'Sound off' : 'Sound on'}
               </button>
             </header>
+
+            {/* Live: a listening ring around the coach while they wait for you */}
+            {isLive && (
+              <div className="pointer-events-none absolute inset-x-0 top-[38%] flex justify-center">
+                <AnimatePresence>
+                  {listening && !speaking && (
+                    <motion.span
+                      key="ear"
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="rounded-full bg-black/40 px-4 py-2 text-sm text-white/85 backdrop-blur"
+                    >
+                      🎙 Your turn — just talk
+                    </motion.span>
+                  )}
+                </AnimatePresence>
+              </div>
+            )}
 
             {/* Captions / transcript */}
             <div ref={transcriptRef} className="no-scrollbar mt-auto max-h-[44vh] space-y-2 overflow-y-auto px-5 pb-3">
@@ -290,9 +450,12 @@ export default function Call() {
               <div className="flex gap-2">
                 <input
                   value={draft}
-                  onChange={(e) => setDraft(e.target.value)}
+                  onChange={(e) => {
+                    setDraft(e.target.value)
+                    if (isLive) live.sendUserActivity() // typing: ask the coach to hold on a moment
+                  }}
                   onKeyDown={(e) => e.key === 'Enter' && sendDraft()}
-                  placeholder={canListen ? 'Or type…' : `Reply to ${coach.name}…`}
+                  placeholder={isLive || canListen ? 'Or type…' : `Reply to ${coach.name}…`}
                   className="min-w-0 flex-1 rounded-full bg-white/15 px-5 py-3 text-[15px] text-white placeholder-white/50 outline-none backdrop-blur focus:bg-white/20"
                 />
                 <button onClick={sendDraft} disabled={!draft.trim()} className="h-12 w-12 rounded-full bg-white/20 text-lg backdrop-blur disabled:opacity-40" aria-label="Send">
@@ -300,13 +463,13 @@ export default function Call() {
                 </button>
               </div>
               <div className="flex items-center justify-center gap-8">
-                {canListen && (
+                {!isLive && canListen && (
                   <CallButton
                     label={listening ? 'Listening' : 'Speak'}
                     color={listening ? 'bg-accent' : 'bg-white/15'}
                     icon="🎙"
                     pulse={listening}
-                      disabled={thinking}
+                    disabled={thinking}
                     onClick={() => {
                       if (listening) return stopListenRef.current()
                       stopSpeaking()

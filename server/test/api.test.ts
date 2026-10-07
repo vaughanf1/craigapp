@@ -247,6 +247,20 @@ describe('the plan & progress', () => {
   })
 })
 
+describe('live calls', () => {
+  it('says 503 when the ElevenLabs agent is not configured, so the app falls back to speak-and-listen', async () => {
+    const r = await api('/coach/live-call', { method: 'POST', body: JSON.stringify({}) }, token)
+    expect(r.status).toBe(503)
+  })
+
+  it('records each live-call turn in the conversation history', async () => {
+    const r = await api('/coach/live-call/turn', { method: 'POST', body: JSON.stringify({ role: 'user', text: 'I walked the dog and skipped the cake' }) }, token)
+    expect(r.status).toBe(200)
+    const user = repo.findUserByPhone('+447700900123')!
+    expect(repo.recentMessages(user.id, 5).some((m) => m.text.includes('skipped the cake') && m.channel === 'call')).toBe(true)
+  })
+})
+
 describe('the war map & board', () => {
   // The fixture is relative to today so the board's buckets (overdue / this week / up next) and the
   // current phase stay where the assertions expect them whatever the date the suite runs on
