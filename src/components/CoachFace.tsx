@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { useStore } from '../lib/store'
 import type { Coach } from '../lib/types'
 import { useCoachIntro } from './CoachIntro'
 import { usePhonePortrait } from '../lib/useViewport'
@@ -35,6 +37,15 @@ export function CoachFace({
   const ref = useRef<HTMLVideoElement>(null)
   const [missing, setMissing] = useState(false)
   const { openIntro } = useCoachIntro()
+  const navigate = useNavigate()
+  const { state, online, updateProfile } = useStore()
+  /** Signed in and online: the intro can turn into a live two-way call */
+  const onTalk = online && state.session
+    ? () => {
+        if (state.profile && state.profile.coachId !== coach.id) updateProfile({ coachId: coach.id })
+        navigate('/app/call')
+      }
+    : undefined
   useEffect(() => {
     const v = ref.current
     if (!v) return
@@ -49,7 +60,7 @@ export function CoachFace({
   return (
     <Wrapper
       type={tappable ? 'button' : undefined}
-      onClick={tappable ? () => openIntro(coach) : undefined}
+      onClick={tappable ? () => openIntro(coach, { onTalk }) : undefined}
       aria-label={tappable ? `Meet ${coach.name}` : undefined}
       className={`relative block shrink-0 rounded-full ${SIZES[size]} ${className}`}
     >

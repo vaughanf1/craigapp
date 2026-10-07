@@ -1,4 +1,6 @@
 import { useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { useStore } from '../lib/store'
 import { motion } from 'framer-motion'
 import { COACHES } from '../data/coaches'
 import { CoachFace } from './CoachFace'
@@ -23,6 +25,10 @@ export default function CoachPicker({
 }) {
   const current = COACHES.find((c) => c.id === value)
   const { openIntro } = useCoachIntro()
+  const navigate = useNavigate()
+  const { state, online } = useStore()
+  /** Signed in and online: "Talk to X now" starts a live two-way call with that coach */
+  const talk = (id: string) => (online && state.session ? () => { onChange(id); navigate('/app/call') } : undefined)
   const [gender, setGender] = useState<CoachGender | 'any'>(current?.gender ?? 'any')
   const [age, setAge] = useState<CoachAgeBand | 'any'>(current?.ageBand ?? 'any')
   /** Set when the user taps a coach — plays that coach's intro with sound */
@@ -65,7 +71,7 @@ export default function CoachPicker({
                 onChange(c.id)
                 setPreviewing(c.id)
                 // The intro plays full screen with sound, started inside this tap
-                openIntro(c, { onChoose: () => onChange(c.id) })
+                openIntro(c, { onChoose: () => onChange(c.id), onTalk: talk(c.id) })
               }}
               className={`flex flex-col items-center rounded-3xl bg-white p-2.5 text-center transition-all sm:p-3 ${
                 selected ? 'shadow-float ring-2 ring-accent' : 'shadow-card hairline hover:shadow-float'
@@ -100,7 +106,7 @@ export default function CoachPicker({
             </p>
             {!compact && <p className="mt-1 text-sm leading-relaxed text-ink-secondary">{current.bio}</p>}
             <button
-              onClick={() => openIntro(current)}
+              onClick={() => openIntro(current, { onTalk: talk(current.id) })}
               className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-ink px-4 py-2 text-sm font-medium text-white"
             >
               ▶ Meet {current.name}

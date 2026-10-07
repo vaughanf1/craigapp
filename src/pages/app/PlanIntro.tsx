@@ -71,17 +71,14 @@ export default function PlanIntro() {
     return stopSpeaking
   }, [online])
 
-  const ringsNow = online && callsAvailable && schedule.channels.includes('call')
+  /** Signed in: sealing the deal starts the first conversation right here, two-way, in the coach's voice */
+  const talksNow = online
 
   const commit = async () => {
     setSaving(true)
-    if (online) {
-      await api.saveSchedule(schedule).catch(() => {})
-      // The deal is sealed with a call: the coach rings this phone right now, not at the next slot
-      if (ringsNow) api.coach.callNow(['call']).catch(() => {})
-    }
+    if (online) await api.saveSchedule(schedule).catch(() => {})
     setSaving(false)
-    navigate('/app', { replace: true })
+    navigate(talksNow ? '/app/call' : '/app', { replace: true })
   }
 
   const roadmap = profile.plan.roadmap
@@ -188,9 +185,10 @@ export default function PlanIntro() {
                   <Link to="/deal" className="font-medium text-accent">How the price works →</Link>
                 </p>
               </Card>
-              {ringsNow ? (
+              {talksNow ? (
                 <p className="text-center text-sm text-ink-secondary">
-                  Tap Deal and {coach.name} rings {state.session?.phone ?? 'this phone'} straight away. Pick up and say hello.
+                  Tap Deal and {coach.name} calls you right here, right now — a real conversation. Talk, interrupt, ask anything.
+                  {callsAvailable ? ' Phone calls to ' + (state.session?.phone ?? 'your number') + ' start at your chosen times.' : ''}
                 </p>
               ) : !online ? (
                 <p className="text-center text-sm text-ink-secondary">
@@ -211,7 +209,7 @@ export default function PlanIntro() {
               </button>
             )}
             <PrimaryButton onClick={stage === 'plan' ? () => setStage('commit') : commit} disabled={saving}>
-              {stage === 'plan' ? "I'm in →" : saving ? 'Saving…' : ringsNow ? `Deal. Ring me now, ${coach.name}.` : `Deal. Ring me, ${coach.name}.`}
+              {stage === 'plan' ? "I'm in →" : saving ? 'Saving…' : talksNow ? `Deal. Let's talk, ${coach.name}.` : `Deal. Ring me, ${coach.name}.`}
             </PrimaryButton>
           </div>
         </footer>

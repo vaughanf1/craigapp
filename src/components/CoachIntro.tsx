@@ -8,8 +8,14 @@ import { usePhonePortrait } from '../lib/useViewport'
  * One always-mounted <video> lives in the provider so play() runs inside the
  * tap's own call stack, which is what Safari requires for audio.
  */
+export interface IntroOptions {
+  onChoose?: () => void
+  chooseLabel?: string
+  /** Start a live two-way call with this coach right now (only offered when the caller can — signed in, online) */
+  onTalk?: () => void
+}
 interface IntroApi {
-  openIntro: (coach: Coach, opts?: { onChoose?: () => void; chooseLabel?: string }) => void
+  openIntro: (coach: Coach, opts?: IntroOptions) => void
 }
 const Ctx = createContext<IntroApi | null>(null)
 
@@ -22,7 +28,7 @@ export function useCoachIntro(): IntroApi {
 export function CoachIntroProvider({ children }: { children: ReactNode }) {
   const video = useRef<HTMLVideoElement>(null)
   const [coach, setCoach] = useState<Coach | null>(null)
-  const [choose, setChoose] = useState<{ onChoose?: () => void; chooseLabel?: string }>({})
+  const [choose, setChoose] = useState<IntroOptions>({})
   const [ended, setEnded] = useState(false)
   /** The browser refused to start the clip with sound (no user activation reached play()) — offer a tap to unmute */
   const [soundBlocked, setSoundBlocked] = useState(false)
@@ -131,13 +137,25 @@ export function CoachIntroProvider({ children }: { children: ReactNode }) {
                 </p>
                 <p className="mt-2 max-w-md text-[15px] leading-relaxed text-white/85">{coach.bio}</p>
                 <div className={`pointer-events-auto mt-5 flex flex-wrap gap-2 ${phone ? '' : 'justify-center'}`}>
+                  {choose.onTalk && (
+                    <button
+                      onClick={() => {
+                        const talk = choose.onTalk
+                        close()
+                        talk?.()
+                      }}
+                      className="rounded-full bg-accent px-6 py-3 font-medium text-white"
+                    >
+                      🎙 Talk to {coach.name} now
+                    </button>
+                  )}
                   {choose.onChoose && (
                     <button
                       onClick={() => {
                         choose.onChoose?.()
                         close()
                       }}
-                      className="rounded-full bg-accent px-6 py-3 font-medium text-white"
+                      className={`rounded-full px-6 py-3 font-medium ${choose.onTalk ? 'bg-white/15 backdrop-blur' : 'bg-accent text-white'}`}
                     >
                       {choose.chooseLabel ?? `Choose ${coach.name}`}
                     </button>
