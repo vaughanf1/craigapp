@@ -31,10 +31,17 @@ self.addEventListener('install', () => {
 })
 self.addEventListener('activate', (event) => {
   if (!upgrading) return
+  // Take the open windows, then reload them only AFTER activation has finished. A navigation
+  // cannot complete while this worker is still activating, so awaiting navigate() inside
+  // waitUntil would deadlock: the page would hang on the old shell until the browser gave up.
   event.waitUntil(
-    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) =>
-      Promise.all(clients.map((c) => c.navigate(c.url).catch(() => {}))),
-    ),
+    self.clients.claim().then(() => {
+      setTimeout(() => {
+        self.clients
+          .matchAll({ type: 'window' })
+          .then((clients) => clients.forEach((c) => { c.navigate(c.url).catch(() => {}) }))
+      }, 100)
+    }),
   )
 })
 // Navigation route first so it wins over the precache's index.html for "/"
