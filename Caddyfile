@@ -1,0 +1,53 @@
+# Static hosting for the Be More web app on Railway (Railpack picks this up in place of its default).
+# Same shape as Railpack's template, plus cache rules: the shell and the service worker are always
+# revalidated, hashed assets are immutable. Without these a phone can keep an old shell for weeks.
+{
+	admin off
+	persist_config off
+	auto_https off
+	log {
+		format json
+	}
+	servers {
+		trusted_proxies static private_ranges 100.0.0.0/8
+	}
+}
+
+:{$PORT:80} {
+	log {
+		format json
+	}
+
+	respond /health 200
+
+	header {
+		X-Content-Type-Options "nosniff"
+		-Server
+	}
+
+	# Default: always revalidate. Covers the shell at every route (/, /app/settings, ...), the service worker,
+	# its registration and the manifest — nothing a phone could get stuck on for weeks.
+	header Cache-Control "no-cache, must-revalidate"
+
+	# Vite's hashed bundles never change under the same name
+	@hashed path /assets/*
+	header @hashed Cache-Control "public, max-age=31536000, immutable"
+
+	# Coach clips: re-dubbed occasionally; a day is plenty
+	@clips path /coaches/*
+	header @clips Cache-Control "public, max-age=86400"
+
+	root * dist
+
+	file_server {
+		hide .git
+		hide .env*
+	}
+
+	encode {
+		gzip
+		zstd
+	}
+
+	try_files {path} {path}.html {path}/index.html /index.html
+}
