@@ -19,9 +19,14 @@ export function normalisePhone(raw: string, defaultCountry = '+44'): string | nu
   return /^\+[1-9]\d{7,14}$/.test(s) ? s : null
 }
 
+/** Enough of a number to recognise it in a log, not enough to dial it */
+export const maskPhone = (phone: string) => `${phone.slice(0, 5)}…${phone.slice(-3)}`
+
 export async function requestCode(phone: string): Promise<{ dev: boolean }> {
   if (env.twilio.enabled && env.twilio.verifySid) {
-    await sendVerification(phone)
+    // Logged in production too: when a code doesn't arrive, this is the line that says whether Twilio took it
+    const v = await sendVerification(phone)
+    console.log(`[auth] verify sms → ${maskPhone(phone)} status=${v.status} attempts=${v.attempts} ${v.sid}`)
     return { dev: false }
   }
   const code = env.devOtp || String(randomInt(100000, 999999))
@@ -33,7 +38,11 @@ export async function requestCode(phone: string): Promise<{ dev: boolean }> {
 }
 
 export async function verifyCode(phone: string, code: string): Promise<boolean> {
-  if (env.twilio.enabled && env.twilio.verifySid) return checkVerification(phone, code)
+  if (env.twilio.enabled && env.twilio.verifySid) {
+    const ok = await checkVerification(phone, code)
+    console.log(`[auth] verify check ${maskPhone(phone)} → ${ok ? 'approved' : 'rejected'}`)
+    return ok
+  }
   const row = getDb().prepare('SELECT code, expires_at, attempts FROM otps WHERE phone = ?').get(phone) as
     | { code: string; expires_at: number; attempts: number } | undefined
   if (!row || row.expires_at < Date.now() || row.attempts >= 5) return false

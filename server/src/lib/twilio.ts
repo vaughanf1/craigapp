@@ -24,8 +24,11 @@ async function post(url: string, form: Record<string, string>): Promise<Record<s
 
 /* ---------- Verify ---------- */
 
-export async function sendVerification(phone: string): Promise<void> {
-  await post(`https://verify.twilio.com/v2/Services/${env.twilio.verifySid}/Verifications`, { To: phone, Channel: 'sms' })
+export interface VerificationSent { sid: string; status: string; attempts: number }
+
+export async function sendVerification(phone: string): Promise<VerificationSent> {
+  const r = await post(`https://verify.twilio.com/v2/Services/${env.twilio.verifySid}/Verifications`, { To: phone, Channel: 'sms' })
+  return { sid: String(r.sid ?? ''), status: String(r.status ?? ''), attempts: Array.isArray(r.send_code_attempts) ? r.send_code_attempts.length : 0 }
 }
 
 export async function checkVerification(phone: string, code: string): Promise<boolean> {
