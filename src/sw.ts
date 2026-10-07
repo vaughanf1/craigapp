@@ -11,13 +11,32 @@ declare const self: ServiceWorkerGlobalScope
  * server is your coach ringing — tapping it opens the call screen.
  *
  * Updates must land immediately: a new deploy activates on the next page load
- * (skipWaiting + clientsClaim; the registration script reloads on controllerchange),
+ * (skipWaiting + clientsClaim, and the worker itself reloads any window still showing the old shell),
  * and page navigations always try the network first — including "/" — so nobody
  * sees a stale app shell from the precache.
  */
 self.skipWaiting()
 clientsClaim()
 cleanupOutdatedCaches()
+
+/**
+ * A phone that opened the app weeks ago can still be showing the old shell its previous
+ * service worker cached (old coach roster, clips that no longer exist). When THIS worker
+ * installs over an older one, reload every open window as soon as it takes control, so the
+ * person sees the current app without having to know to close and reopen it.
+ */
+let upgrading = false
+self.addEventListener('install', () => {
+  upgrading = Boolean(self.registration.active)
+})
+self.addEventListener('activate', (event) => {
+  if (!upgrading) return
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) =>
+      Promise.all(clients.map((c) => c.navigate(c.url).catch(() => {}))),
+    ),
+  )
+})
 // Navigation route first so it wins over the precache's index.html for "/"
 registerRoute(new NavigationRoute(new NetworkFirst({ cacheName: 'pages', networkTimeoutSeconds: 4 })))
 precacheAndRoute(self.__WB_MANIFEST)
