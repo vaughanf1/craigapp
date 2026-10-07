@@ -24,3 +24,18 @@ export function parseWeightToKg(input: string): number | null {
 export function halfwayKg(current: number, goal: number): number {
   return Math.round(((current + goal) / 2) * 2) / 2
 }
+
+const CURRENCY = new Set(['£', '$', '€', '¥'])
+
+/** A milestone metric for display: "£5,000" / "$200" (symbol first, no space), "10 km", "3 books". Weight uses formatWeight. */
+export function formatMetric(target: number, unit: string): string {
+  const u = unit.trim()
+  const n = Number.isInteger(target) ? target.toLocaleString('en-GB') : String(target)
+  if (CURRENCY.has(u)) return `${u}${n}`
+  const code = u.toUpperCase()
+  if (code === 'GBP') return `£${n}`
+  if (code === 'USD') return `$${n}`
+  if (code === 'EUR') return `€${n}`
+  if (u === '%') return `${n}%`
+  return u ? `${n} ${u}` : n
+}

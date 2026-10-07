@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { formatMetric, formatWeight } from '../lib/units'
 import { motion } from 'framer-motion'
 import { todayKey, useStore } from '../lib/store'
 import { boardColumns, currentPhase, addDays } from '../lib/warmap'
@@ -58,6 +59,8 @@ function days(a: string, b: string) {
 }
 
 export function Phases({ map }: { map: WarMap }) {
+  const { state } = useStore()
+  const weightUnit = state.profile?.weightUnit ?? (state.profile?.accent === 'american' ? 'lbs' : 'stone')
   const today = todayKey()
   const cur = currentPhase(map, today)
   const [open, setOpen] = useState<string | null>(cur?.id ?? map.phases[0]?.id ?? null)
@@ -90,7 +93,7 @@ export function Phases({ map }: { map: WarMap }) {
                       <span className={k.done ? 'text-leaf' : 'text-ink-secondary'}>{k.done ? '✓' : '○'}</span>
                       <span>
                         {k.text}
-                        {k.metric && <span className="text-ink-secondary"> · {k.metric.label} {k.metric.target} {k.metric.unit}</span>}
+                        {k.metric && <span className="text-ink-secondary"> · {k.metric.label} {k.metric.unit === 'kg' ? formatWeight(k.metric.target, weightUnit) : formatMetric(k.metric.target, k.metric.unit)}</span>}
                       </span>
                     </li>
                   ))}

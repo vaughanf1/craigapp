@@ -7,6 +7,7 @@ import { api } from '../../lib/api'
 import { Card, Disclaimer, Rise } from '../../components/ui'
 import CoachPicker from '../../components/CoachPicker'
 import CallSettings from '../../components/CallSettings'
+import { ConnectList } from '../../components/Connections'
 import { AccountabilityTile } from '../../components/Accountability'
 import type { VoiceAccent } from '../../lib/types'
 
@@ -76,6 +77,19 @@ export default function Settings() {
 
       <Rise delay={0.08}>
         <CallSettings />
+      </Rise>
+
+      <Rise delay={0.085}>
+        <Card className="p-5">
+          <div className="flex items-center justify-between">
+            <h2 className="font-semibold">Connect</h2>
+            <span className="rounded-full bg-accent/10 px-2 py-0.5 text-xs font-medium text-accent">preview</span>
+          </div>
+          <p className="mt-0.5 text-sm text-ink-secondary">Plug {coach.name} into your calendar, your health apps and where you chat.</p>
+          <div className="mt-4">
+            <ConnectList />
+          </div>
+        </Card>
       </Rise>
 
       {online && (

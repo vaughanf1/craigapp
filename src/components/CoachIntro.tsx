@@ -24,6 +24,8 @@ export function CoachIntroProvider({ children }: { children: ReactNode }) {
   const [coach, setCoach] = useState<Coach | null>(null)
   const [choose, setChoose] = useState<{ onChoose?: () => void; chooseLabel?: string }>({})
   const [ended, setEnded] = useState(false)
+  /** The browser refused to start the clip with sound (no user activation reached play()) — offer a tap to unmute */
+  const [soundBlocked, setSoundBlocked] = useState(false)
   const phone = usePhonePortrait()
 
   const openIntro = useCallback<IntroApi['openIntro']>((c, opts = {}) => {
@@ -34,13 +36,28 @@ export function CoachIntroProvider({ children }: { children: ReactNode }) {
     if (!v) return
     v.src = `${import.meta.env.BASE_URL}${c.video}`
     v.muted = false
+    v.volume = 1
     v.currentTime = 0
+    setSoundBlocked(false)
     v.play().catch(() => {
-      // Sound blocked (no user activation yet) — play silently rather than not at all
+      // Sound blocked (no user activation yet) — play silently rather than not at all, and say so
       v.muted = true
+      setSoundBlocked(true)
       v.play().catch(() => {})
     })
   }, [])
+
+  /** Runs inside a tap, which is what Safari needs to allow audio */
+  const unmute = () => {
+    const v = video.current
+    if (!v) return
+    v.muted = false
+    v.volume = 1
+    v.currentTime = 0
+    setSoundBlocked(false)
+    setEnded(false)
+    v.play().catch(() => setSoundBlocked(true))
+  }
 
   const close = () => {
     video.current?.pause()
@@ -78,7 +95,7 @@ export function CoachIntroProvider({ children }: { children: ReactNode }) {
           playsInline
           preload="none"
           onEnded={() => setEnded(true)}
-          onClick={() => (ended ? replay() : video.current?.paused ? video.current.play() : video.current?.pause())}
+          onClick={() => (soundBlocked ? unmute() : ended ? replay() : video.current?.paused ? video.current.play() : video.current?.pause())}
           className={`relative h-full w-full ${phone ? 'object-cover' : 'object-contain'}`}
         />
         <AnimatePresence>
@@ -90,7 +107,15 @@ export function CoachIntroProvider({ children }: { children: ReactNode }) {
               exit={{ opacity: 0 }}
               className="pointer-events-none absolute inset-0 flex flex-col justify-between"
             >
-              <div className="flex justify-end p-4 pt-[max(1rem,env(safe-area-inset-top))]">
+              <div className="flex items-center justify-between p-4 pt-[max(1rem,env(safe-area-inset-top))]">
+                {soundBlocked ? (
+                  <button
+                    onClick={unmute}
+                    className="pointer-events-auto flex items-center gap-2 rounded-full bg-white px-4 py-2.5 text-sm font-semibold text-ink shadow-float"
+                  >
+                    🔊 Tap for sound
+                  </button>
+                ) : <span />}
                 <button
                   onClick={close}
                   className="pointer-events-auto flex h-11 w-11 items-center justify-center rounded-full bg-white/15 text-xl text-white backdrop-blur"

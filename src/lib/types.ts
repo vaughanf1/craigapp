@@ -98,7 +98,11 @@ export interface UserProfile {
   /* AI conversations (bring-your-own-key) */
   aiEnabled?: boolean
   aiApiKey?: string
+  /** Calendars, health apps and accounts the person has plugged in (demo for now — nothing syncs yet) */
+  connections?: ConnectionId[]
 }
+
+export type ConnectionId = 'google-calendar' | 'outlook-calendar' | 'apple-health' | 'google-fit' | 'strava' | 'myfitnesspal' | 'whatsapp'
 
 export interface Session {
   phone: string

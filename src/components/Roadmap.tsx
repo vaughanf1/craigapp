@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { todayKey, useStore } from '../lib/store'
 import { currentMilestone, daysBetween, weightProgress } from '../lib/roadmap'
-import { formatWeight, parseWeightToKg } from '../lib/units'
+import { formatMetric, formatWeight, parseWeightToKg } from '../lib/units'
 import type { Roadmap } from '../lib/types'
 import { Card } from './ui'
 
@@ -17,7 +17,7 @@ export function RoadmapTimeline({ roadmap, compact = false }: { roadmap: Roadmap
   const unit = profile.weightUnit ?? (profile.accent === 'american' ? 'lbs' : 'stone')
   const { index } = currentMilestone(roadmap, today)
   const fmtMetric = (m: NonNullable<Roadmap['milestones'][number]['metric']>) =>
-    m.unit === 'kg' ? formatWeight(m.target, unit) : `${m.target} ${m.unit}`
+    m.unit === 'kg' ? formatWeight(m.target, unit) : formatMetric(m.target, m.unit)
 
   return (
     <ol className="relative ml-3 border-l-2 border-black/10">

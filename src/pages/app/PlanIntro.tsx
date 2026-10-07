@@ -10,6 +10,7 @@ import { CoachFace } from '../../components/CoachFace'
 import { RoadmapTimeline, DailyActions } from '../../components/Roadmap'
 import { Card, PrimaryButton } from '../../components/ui'
 import { pricingRule } from '../../lib/pricing'
+import { CalendarPlugIn } from '../../components/Connections'
 
 /**
  * Right after onboarding: the coach reverse-engineers the goal into a plan,
@@ -24,6 +25,8 @@ export default function PlanIntro() {
   const [stage, setStage] = useState<'building' | 'plan' | 'commit'>(profile.plan.roadmap ? 'plan' : 'building')
   const [schedule, setSchedule] = useState<Schedule>({ times: ['09:00', '19:00'], channels: ['push', 'call'], enabled: true })
   const [saving, setSaving] = useState(false)
+  /** The server can ring real phones (Twilio configured) — then "Deal" rings you straight away */
+  const [callsAvailable, setCallsAvailable] = useState(false)
   const built = useRef(false)
 
   useEffect(() => {
@@ -64,13 +67,19 @@ export default function PlanIntro() {
   }, [])
 
   useEffect(() => {
-    if (online) api.schedule().then(setSchedule).catch(() => {})
+    if (online) api.me().then((me) => { setSchedule(me.schedule); setCallsAvailable(me.calls.enabled) }).catch(() => {})
     return stopSpeaking
   }, [online])
 
+  const ringsNow = online && callsAvailable && schedule.channels.includes('call')
+
   const commit = async () => {
     setSaving(true)
-    if (online) await api.saveSchedule(schedule).catch(() => {})
+    if (online) {
+      await api.saveSchedule(schedule).catch(() => {})
+      // The deal is sealed with a call: the coach rings this phone right now, not at the next slot
+      if (ringsNow) api.coach.callNow(['call']).catch(() => {})
+    }
     setSaving(false)
     navigate('/app', { replace: true })
   }
@@ -119,6 +128,15 @@ export default function PlanIntro() {
                 </ul>
               </Card>
               <DailyActions roadmap={roadmap} title="Every day" />
+              <Card className="p-5">
+                <h2 className="font-semibold">Plug into your calendar</h2>
+                <p className="mt-1 text-sm leading-relaxed text-ink-secondary">
+                  Your warm-up — the first week's actions and both daily calls — goes straight into your diary, so the plan is where your day already is.
+                </p>
+                <div className="mt-3">
+                  <CalendarPlugIn />
+                </div>
+              </Card>
               <Card className="p-5">
                 <p className="font-semibold">Next: the war map</p>
                 <p className="mt-1 text-sm leading-relaxed text-ink-secondary">
@@ -170,11 +188,15 @@ export default function PlanIntro() {
                   <Link to="/deal" className="font-medium text-accent">How the price works →</Link>
                 </p>
               </Card>
-              {!online && (
+              {ringsNow ? (
+                <p className="text-center text-sm text-ink-secondary">
+                  Tap Deal and {coach.name} rings {state.session?.phone ?? 'this phone'} straight away. Pick up and say hello.
+                </p>
+              ) : !online ? (
                 <p className="text-center text-sm text-ink-secondary">
                   Calls need an account — sign in from Settings and {coach.name} will ring this phone.
                 </p>
-              )}
+              ) : null}
             </motion.div>
           )}
         </AnimatePresence>
@@ -189,7 +211,7 @@ export default function PlanIntro() {
               </button>
             )}
             <PrimaryButton onClick={stage === 'plan' ? () => setStage('commit') : commit} disabled={saving}>
-              {stage === 'plan' ? "I'm in →" : saving ? 'Saving…' : `Deal. Ring me, ${coach.name}.`}
+              {stage === 'plan' ? "I'm in →" : saving ? 'Saving…' : ringsNow ? `Deal. Ring me now, ${coach.name}.` : `Deal. Ring me, ${coach.name}.`}
             </PrimaryButton>
           </div>
         </footer>
