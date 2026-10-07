@@ -27,7 +27,10 @@
 
 	# Default: always revalidate. Covers the shell at every route (/, /app/settings, ...), the service worker,
 	# its registration and the manifest — nothing a phone could get stuck on for weeks.
-	header Cache-Control "no-cache, must-revalidate"
+	@revalidate {
+		not path /assets/* /coaches/*
+	}
+	header @revalidate Cache-Control "no-cache, must-revalidate"
 
 	# Vite's hashed bundles never change under the same name
 	@hashed path /assets/*
