@@ -1,3 +1,4 @@
+import pkg from '../package.json' with { type: 'json' }
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { logger } from 'hono/logger'
@@ -33,7 +34,7 @@ export function createApp() {
     exposeHeaders: ['X-Voice-Cached', 'X-Voice-Cost-Micro', 'X-Voice-Fallback'],
   }))
 
-  app.get('/health', (c) => c.json({ ok: true, version: '1.3.0', brain: brainStatus(), push: env.vapid.enabled, calls: env.twilio.enabled, voice: env.tts.enabled ? 'elevenlabs' : 'browser' }))
+  app.get('/health', (c) => c.json({ ok: true, version: pkg.version, brain: brainStatus(), push: env.vapid.enabled, calls: env.twilio.enabled, voice: env.tts.enabled ? 'elevenlabs' : 'browser' }))
   app.route('/auth', auth)
   app.route('/me', me)
   app.route('/coach', coach)
