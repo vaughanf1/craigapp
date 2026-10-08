@@ -290,7 +290,7 @@ export default function Settings() {
       <Rise delay={0.2}>
         <Disclaimer />
         <p className="mt-3 text-xs text-ink-secondary">
-          Be More v{__APP_VERSION__} ·{' '}
+          Be More v{__APP_VERSION__} · build {new Date(__BUILD_TIME__).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })} ·{' '}
           <Link to="/privacy" className="text-accent">Privacy</Link> ·{' '}
           <Link to="/terms" className="text-accent">Terms</Link>
         </p>

@@ -13,6 +13,8 @@ export default defineConfig(({ mode }) => ({
   test: { exclude: ['**/node_modules/**', 'dist/**', 'server/**'] },
   define: {
     __APP_VERSION__: JSON.stringify(pkg.version),
+    // Stamped at build time and shown in Settings, so a tester can tell at a glance whether they're on the latest build
+    __BUILD_TIME__: JSON.stringify(new Date().toISOString()),
   },
   plugins: [
     react(),
