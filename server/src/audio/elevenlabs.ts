@@ -11,7 +11,8 @@ export class ElevenLabsProvider implements TtsProvider {
   }
 
   async synthesize(req: SynthesisRequest): Promise<SynthesisResult> {
-    const output = req.format === 'ulaw_8000' ? 'ulaw_8000' : 'mp3_44100_64'
+    // 128k, not 64k: the 64k mono output was audibly dull on a phone speaker and worse again once re-encoded into clips
+    const output = req.format === 'ulaw_8000' ? 'ulaw_8000' : 'mp3_44100_128'
     const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${encodeURIComponent(req.voiceId)}?output_format=${output}`, {
       method: 'POST',
       headers: { 'xi-api-key': this.apiKey, 'Content-Type': 'application/json', Accept: MIME[req.format] },

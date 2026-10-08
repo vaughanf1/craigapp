@@ -107,7 +107,8 @@ const probe = (f: string) => Number(execFileSync('ffprobe', ['-v', 'error', '-sh
  * line is longer than the clip, extend the clip by playing it back and forth (ping-pong) to fit.
  */
 function fitVideoToAudio(video: string, audioIn: string, audioOut: string, videoOut: string): number {
-  execFileSync('ffmpeg', ['-loglevel', 'error', '-y', '-i', audioIn, '-af', 'adelay=400|400,apad=pad_dur=0.4', '-c:a', 'libmp3lame', '-q:a', '2', audioOut])
+  // Lossless from here on: the line has already been through one lossy encode at ElevenLabs
+  execFileSync('ffmpeg', ['-loglevel', 'error', '-y', '-i', audioIn, '-af', 'adelay=400|400,apad=pad_dur=0.4', '-c:a', 'pcm_s16le', audioOut])
   const target = probe(audioOut)
   const src = probe(video)
   const silent = videoOut.replace(/\.mp4$/, '-silent.mp4')
@@ -121,16 +122,21 @@ function fitVideoToAudio(video: string, audioIn: string, audioOut: string, video
       '-map', '[out]', '-an', '-c:v', 'libx264', '-crf', '18', '-pix_fmt', 'yuv420p', silent])
   }
   // HeyGen rejects a source video with no audio track: mux the new line in as its soundtrack (it gets replaced anyway)
-  execFileSync('ffmpeg', ['-loglevel', 'error', '-y', '-i', silent, '-i', audioOut, '-map', '0:v', '-map', '1:a', '-c:v', 'copy', '-c:a', 'aac', '-b:a', '128k', '-shortest', videoOut])
+  execFileSync('ffmpeg', ['-loglevel', 'error', '-y', '-i', silent, '-i', audioOut, '-map', '0:v', '-map', '1:a', '-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k', '-shortest', videoOut])
   return target
 }
 
-/** House format: portrait 720×1280, H.264 + AAC, faststart, sized like the originals */
+/**
+ * House format: portrait 720×1280, H.264 + AAC, faststart. The audio is copied, not re-encoded:
+ * the first pass of this pipeline compressed the line five times over (64k mono from ElevenLabs →
+ * MP3 → AAC → HeyGen → 96k AAC) and testers heard it. Video at crf 20 keeps the bitrate near the
+ * originals (~1.8 Mbps) instead of halving it.
+ */
 function normalise(src: string, dest: string) {
   execFileSync('ffmpeg', ['-loglevel', 'error', '-y', '-i', src,
     '-vf', 'scale=720:1280:force_original_aspect_ratio=increase,crop=720:1280',
-    '-c:v', 'libx264', '-preset', 'slow', '-crf', '23', '-pix_fmt', 'yuv420p', '-r', '25',
-    '-c:a', 'aac', '-b:a', '96k', '-movflags', '+faststart', dest])
+    '-c:v', 'libx264', '-preset', 'slow', '-crf', '20', '-pix_fmt', 'yuv420p',
+    '-c:a', 'copy', '-movflags', '+faststart', dest])
 }
 
 attachDb(openDb(':memory:'))

@@ -11,15 +11,15 @@ lives in `server/shared/voices/<id>.json`; the roster is `server/shared/coaches.
 | Maya | F | 20s | Black British | London | High-energy hype | soft | kept |
 | Jake | M | 20s | White British | Cardiff | Warm encourager | soft | kept |
 | Sophia | F | 30s | White British | Edinburgh | Stoic | soft | kept |
-| Marcus | M | 30s | Black British | South London | Commercial operator | hard | kept |
-| Fiona | F | 30s | White Scottish | Glasgow | Military discipline | hard | **new** |
+| Marcus | M | 30s | Black British | South London | Commercial operator | firm | kept |
+| Fiona | F | 30s | White Scottish | Glasgow | High standards | firm | **new** |
 | David | M | 40s | White British | Leeds | Systems & habits | analytical | kept |
 | Karim | M | 40s | British Lebanese | Birmingham (Lebanese-born) | Mindfulness | soft | **new** |
 | Priya | F | 40s | British Indian | Leicester | Accountability partner | analytical | **new** |
 | Margaret | F | 50s | White British | Surrey (RP) | Socratic questioner | analytical | kept |
 | Arun | M | 50s | British Indian | Bradford | Strategic planner | analytical | **new** |
-| Ken | M | 60s | British Chinese | Liverpool (Hong Kong-born) | Athletic performance | hard | **new** |
-| Grace | F | 60s | Black British (Nigerian-born) | London | Plain-spoken mentor | hard | **new** |
+| Ken | M | 60s | British Chinese | Liverpool (Hong Kong-born) | Athletic performance | firm | **new** |
+| Grace | F | 60s | Black British (Nigerian-born) | London | Plain-spoken mentor | firm | **new** |
 
 Retired: Elena (warm mentor, overlapped with Margaret and Jake) and Richard
 (old-school discipline — the stereotype pairing we are deliberately avoiding).
@@ -28,11 +28,11 @@ Existing profiles pointing at them resolve to Priya and Fiona respectively
 
 ## Pattern check
 
-Styles grouped into three tone bands, then counted by demographic:
+Styles grouped into three tone bands, then counted by demographic. **Tone note (8 Oct 2026, after Craig's first test):** "firm" means high standards and plain speaking, never punitive. Every coach follows the Be More Way in `server/src/coach/rules.ts` (kind, positive, no judgement, no refusals, no "do you still want this"), and the hard edge is reserved for measurable goals — the life area sets the register, not the coach. The voice guides were rewritten to match.
 
 | Band | Coaches | Women / Men | White / Black / S. Asian / E. Asian / M. Eastern | Ages |
 | --- | --- | --- | --- | --- |
-| Hard (discipline, operator, mentor, athletic) | Fiona, Marcus, Grace, Ken | 2 / 2 | 1 / 2 / 0 / 1 / 0 | 30s, 30s, 60s, 60s |
+| Firm (discipline, operator, mentor, athletic) | Fiona, Marcus, Grace, Ken | 2 / 2 | 1 / 2 / 0 / 1 / 0 | 30s, 30s, 60s, 60s |
 | Soft (hype, encourager, stoic, mindfulness) | Maya, Jake, Sophia, Karim | 2 / 2 | 2 / 1 / 0 / 0 / 1 | 20s, 20s, 30s, 40s |
 | Analytical (systems, partner, socratic, strategist) | David, Priya, Margaret, Arun | 2 / 2 | 2 / 0 / 2 / 0 / 0 | 40s, 40s, 50s, 50s |
 

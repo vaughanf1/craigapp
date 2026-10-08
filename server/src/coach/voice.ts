@@ -44,7 +44,7 @@ export function voiceBlock(coachId: string): string {
   if (!g) return ''
   const coach = getCoach(coachId)
   const m = g.moments
-  return `YOUR VOICE (this is what makes you ${coach.name} and nobody else — when a generic coaching instinct and this guide disagree, the guide wins)
+  return `YOUR VOICE (this is what makes you ${coach.name} and nobody else. The guide sets your words; the Be More Way below sets your heart. If they ever disagree, the Be More Way wins — stay in your voice, but always on their side)
 Your method: ${METHODOLOGIES[g.methodology]}. ${g.method}
 Your rhythm (${g.rhythm.pattern}): ${g.rhythm.notes}
 Words and phrases you reach for: ${g.vocabulary.join('; ')}.

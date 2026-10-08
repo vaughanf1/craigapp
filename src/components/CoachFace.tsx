@@ -4,6 +4,7 @@ import { useStore } from '../lib/store'
 import type { Coach } from '../lib/types'
 import { useCoachIntro } from './CoachIntro'
 import { usePhonePortrait } from '../lib/useViewport'
+import { clipUrl } from '../lib/clips'
 
 const SIZES = {
   sm: 'h-10 w-10',
@@ -80,7 +81,7 @@ export function CoachFace({
       ) : (
         <video
           ref={ref}
-          src={`${import.meta.env.BASE_URL}${coach.video}`}
+          src={clipUrl(coach)}
           muted
           loop
           playsInline
@@ -131,7 +132,7 @@ export function CoachVideo({
   return (
     <video
       ref={ref}
-      src={`${import.meta.env.BASE_URL}${coach.video}`}
+      src={clipUrl(coach)}
       loop={!withSound}
       playsInline
       preload="auto"

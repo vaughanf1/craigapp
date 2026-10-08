@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useRef, useState, type ReactNod
 import { AnimatePresence, motion } from 'framer-motion'
 import type { Coach } from '../lib/types'
 import { usePhonePortrait } from '../lib/useViewport'
+import { clipUrl } from '../lib/clips'
 
 /**
  * Tap any coach and they introduce themselves — full screen, with sound.
@@ -40,7 +41,7 @@ export function CoachIntroProvider({ children }: { children: ReactNode }) {
     setChoose(opts)
     setEnded(false)
     if (!v) return
-    v.src = `${import.meta.env.BASE_URL}${c.video}`
+    v.src = clipUrl(c)
     v.muted = false
     v.volume = 1
     v.currentTime = 0

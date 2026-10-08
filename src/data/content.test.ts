@@ -64,7 +64,7 @@ describe('coaches match the spec', () => {
   })
   it('keeps retired coaches resolving to a current one', () => {
     expect(getCoach('elena').id).toBe('priya')
-    expect(getCoach('richard').id).toBe('fiona')
+    expect(getCoach('richard').id).toBe('ken')
     expect(getCoach('nobody').id).toBe(COACHES[0].id)
   })
   it('avoids fragile composite emoji (broken on older platforms)', () => {

@@ -50,7 +50,7 @@ Current streak: ${streak} day${streak === 1 ? '' : 's'} of daily check-ins
 What's in it for them (their own words — remind them of these on hard days):
 ${list(profile.plan.benefits)}
 
-Obstacles they predicted (watch for these and call them out by name):
+Obstacles they predicted (watch for these and gently name them when they show up):
 ${list(profile.plan.obstacles)}
 
 People supporting them: ${profile.plan.supporters.join(', ') || '(none listed)'}

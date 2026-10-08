@@ -73,7 +73,7 @@ export const COACHES: Coach[] = [
     accent: 'Cardiff, Wales',
     emoji: '👨🏻',
     gradient: 'from-[#0a84ff] to-[#5e5ce6]',
-    bio: 'Your biggest fan. Jake notices every small win, says it out loud, and builds your confidence brick by brick.',
+    bio: 'Your biggest fan. Jake notices every small win, says it out loud, picks you straight back up after a wobble, and builds your confidence brick by brick.',
     video: 'coaches/jake.mp4',
     // STAND-IN: ElevenLabs premade 'George' (British, middle-aged) — the Starter plan's 10 voice slots were full; design Jake's own Cardiff voice when slots allow
     voiceId: 'JBFqnCBsd6RMkjVDRZzb',
@@ -91,7 +91,7 @@ export const COACHES: Coach[] = [
     accent: 'Edinburgh, Scotland',
     emoji: '👩🏼',
     gradient: 'from-[#30b0c7] to-[#0a84ff]',
-    bio: 'Measured, mindful and quietly relentless. Sophia coaches what you can control and lets the rest go.',
+    bio: 'Measured, mindful and quietly in your corner. Sophia helps you find your focus, coaches what you can control and lets the rest go.',
     video: 'coaches/sophia.mp4',
     voiceId: 'RwQ3AMZO4iQVMU7POaP4',
     voiceDesign: 'A white Scottish woman in her mid-thirties from Edinburgh. Calm, measured and even; a gentle Edinburgh accent; unhurried pace, low-to-mid pitch, composed, never excited.',
@@ -102,13 +102,13 @@ export const COACHES: Coach[] = [
     name: 'Marcus',
     gender: 'male',
     ageBand: '30s',
-    style: 'Numbers, no fluff',
+    style: 'Numbers & returns',
     methodology: 'operator',
     heritage: 'Black British',
     accent: 'South London, England',
     emoji: '👨🏿',
     gradient: 'from-[#32d74b] to-[#00c7be]',
-    bio: 'Inputs, outputs and the return on your effort. Marcus runs your goal like a business and every excuse gets costed.',
+    bio: 'Inputs, outputs and the return on your effort. Marcus runs your goal like a business he believes in, and shows you what every small effort pays back.',
     video: 'coaches/marcus.mp4',
     voiceId: 'H4Zx2OFFZV7K0WCe28eM',
     voiceDesign: 'A Black British man in his mid-thirties from South London. Direct, confident and no-nonsense; a clear South London accent; brisk pace, firm clipped delivery, businesslike.',
@@ -119,16 +119,16 @@ export const COACHES: Coach[] = [
     name: 'Fiona',
     gender: 'female',
     ageBand: '30s',
-    style: 'Zero excuses',
+    style: 'High standards',
     methodology: 'discipline',
     heritage: 'White Scottish',
     accent: 'Glasgow, Scotland',
     emoji: '👩🏻',
     gradient: 'from-[#1d1d1f] to-[#ff453a]',
-    bio: 'Two boxes: done or not done. Fiona runs your plan like a brief and expects it executed, on time, every day.',
+    bio: 'Two boxes: done or not done. Fiona turns your plan into a simple daily brief, keeps the times fixed so you never have to decide, and is proud out loud when the box is ticked.',
     video: 'coaches/fiona.mp4',
     voiceId: 'F9nfbmIzXjJMjWnRoVE4',
-    voiceDesign: 'A white Scottish woman in her early thirties from Glasgow. Crisp, authoritative and level; a distinct Glaswegian accent; short clipped sentences, brisk, commanding without ever shouting.',
+    voiceDesign: 'A white Scottish woman in her early thirties from Glasgow. Crisp, authoritative and level; a distinct Glaswegian accent; short clipped sentences, brisk, warm and assured, with a smile in it, never shouting.',
     phoneVoice: 'Polly.Amy-Neural',
   },
   {
@@ -177,7 +177,7 @@ export const COACHES: Coach[] = [
     accent: 'Leicester, England',
     emoji: '👩🏽',
     gradient: 'from-[#ff9f0a] to-[#ff375f]',
-    bio: 'Not above you, beside you. Priya puts her word on the table next to yours and checks that both get kept.',
+    bio: 'Not above you, beside you. Priya puts her word on the table next to yours, cheers when both get kept, and never lets you face a bad week alone.',
     video: 'coaches/priya.mp4',
     voiceId: 'nAZ54GPVA8TsI7Iq7t7S',
     voiceDesign: 'A British Indian woman in her early forties from Leicester. Chatty, warm, informal and quick; an East Midlands accent; sounds like a close friend, playful and direct.',
@@ -194,7 +194,7 @@ export const COACHES: Coach[] = [
     accent: 'Surrey, England',
     emoji: '👵🏼',
     gradient: 'from-[#ff9f0a] to-[#bf5af2]',
-    bio: 'A lifetime of perspective and very few instructions. Margaret asks the question you have been avoiding and waits.',
+    bio: 'Wise and kind, with a lifetime of perspective and very few instructions. Margaret believes in you before you do, and asks the one question that helps you see it.',
     video: 'coaches/margaret.mp4',
     // STAND-IN: ElevenLabs premade 'Alice' (British RP, middle-aged) — closest premade to Margaret's design; replace when slots allow
     voiceId: 'Xb7hH8MSUJpSbSDYk0k2',
@@ -246,7 +246,7 @@ export const COACHES: Coach[] = [
     accent: 'London, England (Nigerian-born)',
     emoji: '👵🏿',
     gradient: 'from-[#bf5af2] to-[#ff9f0a]',
-    bio: 'Plain truth, plain food, early night. Grace has no time for pity and all the time in the world for you.',
+    bio: 'Plain truth, plain food, early night. Grace tells it straight because she cares, and has all the time in the world for you.',
     video: 'coaches/grace.mp4',
     voiceId: 'F6SVkGXtItsEheXrNNFv',
     voiceDesign: 'A Black British woman in her mid-sixties from London, born in Nigeria. Plain-spoken, warm and no-nonsense; a London accent with Nigerian roots; unhurried and firm, with a dry twinkle.',
@@ -257,7 +257,7 @@ export const COACHES: Coach[] = [
 /** Coaches retired in the roster expansion, mapped to the closest current coach so existing profiles keep working */
 export const RETIRED_COACHES: Record<string, string> = {
   elena: 'priya',     // warm mentor who'd "been there" → the accountability partner
-  richard: 'fiona',   // old-school discipline → zero excuses
+  richard: 'ken',     // old-school discipline → the patient performance coach (firm, kind, same generation)
 }
 
 export function getCoach(id: string | undefined): Coach {

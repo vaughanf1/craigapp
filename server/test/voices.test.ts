@@ -55,6 +55,16 @@ describe('voice guides', () => {
     }
   })
 
+  it('no coach refuses, shames or dismisses in anything they are scripted to say', () => {
+    const harsh = ['denied', 'not interested in the story', 'stop explaining', "your feelings aren't", 'no excuses', 'pity is a chair', "don't celebrate", "i'm not buying"]
+    for (const g of Object.values(VOICE_GUIDES)) {
+      const said = [...g.catchphrases, ...g.examples, ...Object.values(g.moments).map((m) => m.example)].join('\n').toLowerCase()
+      for (const h of harsh) {
+        expect(said.includes(h), `${g.coachId} is scripted to say "${h}"`).toBe(false)
+      }
+    }
+  })
+
   it('rejects a guide that breaks the spec', () => {
     const good = getVoiceGuide('maya')!
     expect(() => validateVoiceGuide({ ...good, vocabulary: good.vocabulary.slice(0, 5) })).toThrow()
@@ -69,7 +79,7 @@ describe('prompt architecture', () => {
     const p = personaBlock('maya')
     expect(p).toContain('You are Maya')
     expect(p).toContain('YOUR VOICE')
-    expect(p).toContain('Energy first, excuses never.')
+    expect(p).toContain('Small win, big noise.')
     expect(p).toContain('NOT A YES-MAN')
     expect(p).toContain('VISION → OUTCOME → MILESTONES')
     expect(p).toContain('Samaritans on 116 123')

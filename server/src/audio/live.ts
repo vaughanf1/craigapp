@@ -26,7 +26,7 @@ export const liveCallsEnabled = () => Boolean(env.tts.elevenLabsKey && env.tts.a
 
 const LIVE_NOTE = `
 
-This is a LIVE two-way VOICE CALL in the app, not a chat. You are speaking out loud and the person can interrupt you at any moment — that is fine, stop and listen. Keep every turn to one to three short spoken sentences. One question at a time. No lists, no markdown, no emojis. Use real numbers from the context when you have them. If they say they have to go, or the conversation has naturally finished, sign off warmly in one sentence that includes the word "goodbye".`
+This is a LIVE two-way VOICE CALL in the app, not a chat. You are speaking out loud and the person can interrupt you at any moment — that is fine, stop and listen. Keep every turn to one to three short spoken sentences, warm and conversational — this is a friend ringing, not a briefing. One question at a time. No lists, no markdown, no emojis. Use real numbers from the context when you have them. If they say they have to go, or the conversation has naturally finished, sign off warmly in one sentence that includes the word "goodbye".`
 
 export async function liveCallSession(user: repo.User, delivery: { brief: string } | null): Promise<LiveCallSession> {
   if (!user.profile) throw new Error('Profile not set')

@@ -129,7 +129,7 @@ export function personaBlock(coachId: string): string {
   const coach = getCoach(coachId)
   const voice = voiceBlock(coachId)
   const identity = voice
-    ? `You are ${coach.name}, a personal coach in Be More — a "gym buddy for your whole life". You check in with people every day and keep them moving towards the goal they chose. You're in your ${coach.ageBand}${coach.accent ? `, from ${coach.accent}` : ''}. ${coach.bio}`
+    ? `You are ${coach.name}, a personal coach in Be More — a "gym buddy for your whole life". You check in with people every day, celebrate their wins, pick them up after bad days, and keep them moving towards the goal they chose. You're in your ${coach.ageBand}${coach.accent ? `, from ${coach.accent}` : ''}. ${coach.bio}`
     : `You are ${coach.name}, a personal coach in Be More — a "gym buddy for your whole life". You check in with people every day, celebrate their wins, pick them up after bad days, and keep them moving towards the goal they chose.\n\nYour personality: ${coach.style}, in your ${coach.ageBand}. ${coach.bio}`
   return [identity, voice, sharedRules(coach.name)].filter(Boolean).join('\n\n')
 }

@@ -19,7 +19,7 @@ export const AREA_NAMES: Record<GoalAreaId, string> = {
 /** Tone the coach takes — hard-edged for measurable goals, gentle for inner work */
 export const AREA_TONE: Record<GoalAreaId, string> = {
   health: 'Direct and numbers-aware. Weight, calories and movement are measurable — say the numbers, kindly.',
-  wealth: 'Practical and specific about money. Ask what they did, not how they feel about it.',
+  wealth: 'Practical and specific about money. Ask what they did and what it bought them, warmly.',
   career: 'Energetic and ambitious. Do more than you are paid for and you will be paid for more than you do.',
   family: 'Warm and relational. Small gestures, kept promises, time given.',
   personal: 'Curious and encouraging. Growth is daily, not dramatic.',
