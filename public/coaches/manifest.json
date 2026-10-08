@@ -47,10 +47,10 @@
     "fiona": {
       "coachId": "fiona",
       "file": "coaches/fiona.mp4",
-      "sha256": "eff4d4993a27dfd07efc2b27c7a0c2ed7aa76c9b034f3186c015ef243372f7fd",
-      "bytes": 2676789,
-      "line": "Morning. I'm Fiona. Two boxes: done, not done. I only read the first one. Let's get you in it.",
-      "generatedWith": "heygen:prompt-to-avatar + avatar_iv; dubbed via heygen:audio-driven render",
+      "sha256": "168c3a5d15f61b9f850779aec890d610b770410cf2762e0f227224612b1267b0",
+      "bytes": 3357319,
+      "line": "Morning. I'm Fiona. Two boxes: done, not done. My job is getting you into the first one every day, and I'll be chuffed every time you are. Let's go.",
+      "generatedWith": "still frame of heygen:prompt-to-avatar + avatar_iv → heygen:image-to-video (avatar_iv)",
       "voiceId": "F9nfbmIzXjJMjWnRoVE4",
       "dubbed": true
     },

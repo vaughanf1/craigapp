@@ -39,7 +39,7 @@ const work = `${root}server/data/heygen/`
 mkdirSync(work, { recursive: true })
 
 const INTRO_LINES: Record<string, string> = {
-  fiona: "Morning. I'm Fiona. Two boxes: done, not done. I only read the first one. Let's get you in it.",
+  fiona: "Morning. I'm Fiona. Two boxes: done, not done. My job is getting you into the first one every day, and I'll be chuffed every time you are. Let's go.",
   karim: "Hi, I'm Karim. Before anything else, one breath. Notice what's here. Then we decide. I'll be with you for both.",
   priya: "Alright, I'm Priya. I'm not above you, I'm beside you. You say what you'll do, I say when I'll check. Your word's on the table, and so's mine.",
   arun: "Hello, I'm Arun. We start at the finish line and walk back. Every goal gets a date, every date gets a job. Yours starts this week.",
@@ -140,7 +140,8 @@ function fitVideoToAudio(video: string, audioIn: string, audioOut: string, video
 function normalise(src: string, dest: string) {
   execFileSync('ffmpeg', ['-loglevel', 'error', '-y', '-i', src,
     '-vf', 'scale=720:1280:force_original_aspect_ratio=increase,crop=720:1280',
-    '-c:v', 'libx264', '-preset', 'slow', '-crf', '20', '-pix_fmt', 'yuv420p',
+    // crf 20 for quality, capped at 2.5 Mbps so a grainy render can't balloon (Fiona's came out at 8.8 MB uncapped)
+    '-c:v', 'libx264', '-preset', 'slow', '-crf', '20', '-maxrate', '2.5M', '-bufsize', '5M', '-pix_fmt', 'yuv420p',
     '-c:a', 'copy', '-movflags', '+faststart', dest])
 }
 
