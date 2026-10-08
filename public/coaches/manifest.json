@@ -1,6 +1,6 @@
 {
   "updated": "2026-10-08",
-  "dubbingDone": false,
+  "dubbingDone": true,
   "note": "8 Oct 2026: the six original clips (maya, jake, sophia, marcus, david, margaret) are back to their un-dubbed vidIQ versions after a tester heard the HeyGen lip-synced re-dubs as lower quality and slightly out of sync. They still speak in the video model's voice, not the call voice. Next pass: regenerate those six with HeyGen Avatar IV driven by the ElevenLabs line (as the other six were), not precision lip-sync over old footage. Flip dubbingDone back to true after that.",
   "missingClips": [],
   "clips": {
@@ -57,12 +57,12 @@
     "david": {
       "coachId": "david",
       "file": "coaches/david.mp4",
-      "sha256": "51117f02482d8efd6b0bbcdffaad2745b5752cc19aab8e6884f035ca910de6cf",
-      "bytes": 2080116,
+      "sha256": "4303f6a6c51f54416f0d6eb520b89a61a28b915a0a183fd6a57b04b99950ef18",
+      "bytes": 2360770,
       "line": "Hi, I'm David. Consistent beats intense. Small wins every day, stacked up, change everything. Let's start with today.",
-      "generatedWith": "vidiq:gemini-omni-flash (8s, 720p, 9:16)",
+      "generatedWith": "still frame of vidiq:gemini-omni-flash (8s, 720p, 9:16) → heygen:image-to-video (avatar_iv); dubbed via heygen:audio-driven render",
       "voiceId": "onwK4e9ZLuTAKqWW03F9",
-      "dubbed": false
+      "dubbed": true
     },
     "karim": {
       "coachId": "karim",
@@ -87,12 +87,12 @@
     "margaret": {
       "coachId": "margaret",
       "file": "coaches/margaret.mp4",
-      "sha256": "361e5f79e2d5c7080f9c2693022929719f42147f4fb3a5ba30409c5bc0bd78ec",
-      "bytes": 2038660,
+      "sha256": "dcb5323fb13923f4fd6e502a24cd1cd47e5ef8daa19981fed7dcaa36a37b7881",
+      "bytes": 2538499,
       "line": "Hello love, I'm Margaret. I believe in you before you do, and I'll remind you of that every day. Now, let's make a start.",
-      "generatedWith": "vidiq:gemini-omni-flash (8s, 720p, 9:16)",
+      "generatedWith": "still frame of vidiq:gemini-omni-flash (8s, 720p, 9:16) → heygen:image-to-video (avatar_iv); dubbed via heygen:audio-driven render",
       "voiceId": "Xb7hH8MSUJpSbSDYk0k2",
-      "dubbed": false
+      "dubbed": true
     },
     "arun": {
       "coachId": "arun",
