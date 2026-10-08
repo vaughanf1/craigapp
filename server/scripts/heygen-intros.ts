@@ -4,9 +4,12 @@
  *   HEYGEN_API_KEY=... ELEVENLABS_API_KEY=... node --no-warnings=ExperimentalWarning scripts/heygen-intros.ts [coachId ...] [--dry]
  *   ... scripts/heygen-intros.ts <coachId> --resume <jobId>   # a job already submitted (e.g. the script died while polling)
  *
- * Two paths, chosen per coach:
- *  - EXISTING clip in public/coaches/<id>.mp4  → precision lip-sync (POST /v3/lipsyncs): the approved face and
- *    framing stay, the mouth is re-animated to the coach's ElevenLabs line.
+ * Three paths, chosen per coach:
+ *  - EXISTING clip + `--still`                  → a still frame of the approved face (taken before the first word)
+ *    drives an Avatar IV image-to-video render of the coach's ElevenLabs line. The whole face is animated from
+ *    the audio, so lips, breathing and head movement all belong to the new line. PREFERRED for re-voicing.
+ *  - EXISTING clip in public/coaches/<id>.mp4  → precision lip-sync (POST /v3/lipsyncs): only the mouth is redrawn
+ *    over footage filmed saying other words. Testers heard the first pass of this as out of sync — avoid.
  *  - NO clip yet                                → image-to-video (POST /v3/videos, type "image", Avatar IV): a
  *    portrait in data/heygen/<id>-face.(jpg|png) speaks the line. Put the reviewed face there first.
  *
@@ -56,6 +59,8 @@ const FACE_PROMPTS: Record<string, string> = {
 
 const args = process.argv.slice(2)
 const dry = args.includes('--dry')
+/** Re-voice an existing clip from a still of its face (Avatar IV) instead of lip-syncing the old footage */
+const fromStill = args.includes('--still')
 const resume = args[args.indexOf('--resume') + 1] && args.includes('--resume') ? args[args.indexOf('--resume') + 1] : null
 const ids = args.filter((a, i) => !a.startsWith('--') && args[i - 1] !== '--resume')
 if (resume && ids.length !== 1) throw new Error('--resume takes exactly one coachId')
@@ -153,12 +158,18 @@ async function lineAudio(c: { id: string }, line: string): Promise<{ audioPath: 
 for (const c of targets) {
   if (!c.voiceId) { console.log(`${c.id}: no voiceId yet, skipping`); continue }
   const existing = `${pub}${c.id}.mp4`
-  const face = ['jpg', 'png'].map((e) => `${work}${c.id}-face.${e}`).find(existsSync)
+  let face = ['jpg', 'png'].map((e) => `${work}${c.id}-face.${e}`).find(existsSync)
   const line = manifest.clips[c.id]?.line || INTRO_LINES[c.id]
   if (!line) { console.log(`${c.id}: no intro line known, skipping`); continue }
-  const mode = existsSync(existing) ? 'lipsync' : face ? 'image' : FACE_PROMPTS[c.id] ? 'prompt' : null
+  const still = fromStill && existsSync(existing)
+  if (still) {
+    // The original clips start speaking at ~0.4s; a frame at 0.15s has the mouth closed and the eyes on camera
+    face = `${work}${c.id}-still.jpg`
+    execFileSync('ffmpeg', ['-loglevel', 'error', '-y', '-ss', '0.15', '-i', existing, '-frames:v', '1', '-q:v', '2', face])
+  }
+  const mode = still ? 'image' : existsSync(existing) ? 'lipsync' : face ? 'image' : FACE_PROMPTS[c.id] ? 'prompt' : null
   if (!mode) { console.log(`${c.id}: no clip, no face image and no face prompt — nothing to do`); continue }
-  console.log(`\n${c.name} (${c.id}) → ${mode} in voice ${c.voiceId}${resume ? ` (resuming job ${resume})` : ''}\n  "${line}"`)
+  console.log(`\n${c.name} (${c.id}) → ${mode}${still ? ' (from a still of the existing clip)' : ''} in voice ${c.voiceId}${resume ? ` (resuming job ${resume})` : ''}\n  "${line}"`)
   if (dry) continue
 
   // 2. The job
@@ -226,7 +237,8 @@ for (const c of targets) {
     const imageId = await upload(face!, face!.endsWith('.png') ? 'image/png' : 'image/jpeg')
     const job = await api<{ video_id?: string; id?: string }>('/v3/videos', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ type: 'image', image: { type: 'asset_id', asset_id: imageId }, audio_asset_id: audioId, aspect_ratio: '9:16', resolution: '720p', engine: { type: 'avatar_iv' }, title: `Be More — ${c.name} intro` }),
+      // No `engine` here: image videos are Avatar IV by default and the API rejects the field as an extra input
+      body: JSON.stringify({ type: 'image', image: { type: 'asset_id', asset_id: imageId }, audio_asset_id: audioId, aspect_ratio: '9:16', resolution: '720p', title: `Be More — ${c.name} intro` }),
     })
     out = await poll(`/v3/videos/${job.video_id ?? job.id}`)
   }
@@ -242,7 +254,9 @@ for (const c of targets) {
 
   // 4. Record it
   const finalBuf = readFileSync(existing)
-  manifest.clips[c.id] = { ...(manifest.clips[c.id] ?? {}), coachId: c.id, file: `coaches/${c.id}.mp4`, sha256: createHash('sha256').update(finalBuf).digest('hex'), bytes: finalBuf.byteLength, line, generatedWith: `${manifest.clips[c.id]?.generatedWith ?? (mode === 'prompt' ? 'heygen:prompt-to-avatar + avatar_iv' : 'heygen:image-to-video (avatar_iv)')}; dubbed via heygen:${mode === 'lipsync' ? 'lipsync-precision' : 'audio-driven render'}`, voiceId: c.voiceId, dubbed: true }
+  manifest.clips[c.id] = { ...(manifest.clips[c.id] ?? {}), coachId: c.id, file: `coaches/${c.id}.mp4`, sha256: createHash('sha256').update(finalBuf).digest('hex'), bytes: finalBuf.byteLength, line, generatedWith: still
+      ? `still frame of ${(manifest.clips[c.id]?.generatedWith ?? 'the previous clip').replace(/;\s*dubbed via .*$/, '')} → heygen:image-to-video (avatar_iv); dubbed via heygen:audio-driven render`
+      : `${manifest.clips[c.id]?.generatedWith ?? (mode === 'prompt' ? 'heygen:prompt-to-avatar + avatar_iv' : 'heygen:image-to-video (avatar_iv)')}; dubbed via heygen:${mode === 'lipsync' ? 'lipsync-precision' : 'audio-driven render'}`, voiceId: c.voiceId, dubbed: true }
   writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n')
 }
 console.log('\nNow run: node --no-warnings=ExperimentalWarning scripts/intro-manifest.ts   (recomputes hashes; add --done once every coach is dubbed)')
